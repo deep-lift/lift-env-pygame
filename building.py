@@ -9,7 +9,7 @@ from render import *
 
 class Lift(object):
 
-    move_dir = [0, -1, 1]
+    move_dir = [0, -1, 1]  # todo : 정지 아래 위 방향 이리 되는지 확인
 
     def __init__(self, scr, no: int, bd: object):
         self.scr = scr
@@ -74,12 +74,11 @@ class Lift(object):
     def is_enterable(self):
         return True
 
-    def set_transition_delay(self,event:Event,delay:float,add:bool = False):
-        if add == True:
+    def set_transition_delay(self, event: Event, delay: float, add: bool = False):
+        if add:
             self.next_transition_time += delay
-        else :
+        else:
             self.next_transition_time = delay
-
         self.next_event = event
 
     def chk_transtime(self):
@@ -98,7 +97,6 @@ class Lift(object):
         return True
 
     def chk_floor(self):
-
         floor = -1
         next_floor = -1
         floor, next_floor = self.get_nextfloor()
@@ -506,10 +504,9 @@ class Building(object):
         self.step = 0
         self.is_done = False
 
-    def passenger_random(self):
+    def simulation_passenger(self):
         if self.curr_passenger > self._env.passenger * 0.3:
             return
-
         new_passenger = random.randint(0, self.rest_passenger)
         floor_passenger = [0 for i in range(len(self.floors))]
         floor_passenger[0] = random.randint(0, (int)(new_passenger * 0.8))
@@ -524,14 +521,12 @@ class Building(object):
         for i in range(len(self.floors)):
 
             if floor_passenger[i] > 0:
-                destlist = self.floors[i].add_passenger(floor_passenger[i])
+                # todo : 여기 뭐지?
+                # dest_list = self.floors[i].add_passenger(floor_passenger[i])
                 self.add_passenger += floor_passenger[i]
                 self.rest_passenger -= floor_passenger[i]
 
         self.simulation_time += 5
-
-    def simulation_passenger(self):
-        self.passenger_random()
 
     def take_passenger(self):
         for floor in self.floors:
@@ -584,7 +579,7 @@ class Building(object):
         return False
 
     def update_step(self):
-        self.play_time += 0.1
+        self.play_time += 0.1  # todo : 단위가 궁금!
 
         if self.step >= self._env.maxstep:
             self.is_done = True
@@ -595,6 +590,7 @@ class Building(object):
         self.step += 1
 
     def render(self):
+
         self.scr.fill(BLACK)
 
         for floor in self.floors:

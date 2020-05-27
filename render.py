@@ -5,10 +5,9 @@ pg.init()
 
 SCREEN_HEIGHT: int = 800
 SCREEN_WIDTH: int = 600
-METER_PER_PIXEL: float = 200   # 미터당 픽셀
+METER_PER_PIXEL: float = 30   # 미터당 픽셀
 LIFT_WIDTH = 5
 FONT = pg.font.Font('freesansbold.ttf', 16)
-
 
 class Vector3:
     x: float

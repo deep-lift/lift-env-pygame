@@ -35,7 +35,7 @@ class ElevatorEnv:
     capacity: int = 15
     actionTofloor: int = 0
     fixedTime: float = FIXED_TIME
-    maxstep: int = 50000
+    maxstep: int = 5000
     bd:building
     heuristic: bool = True
 
@@ -54,7 +54,7 @@ class ElevatorEnv:
             if event.type == pg.QUIT:
                 sys.exit()
 
-        self.clock.tick(1000)
+        self.clock.tick(1)
         self.bd.update_step()
         self.bd.render()
 
