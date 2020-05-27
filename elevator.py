@@ -19,7 +19,7 @@ FIXED_TIME = 0.1
 import building
 import pygame as pg
 import sys
-
+from render import *
 
 class ElevatorEnv:
     elevator_count: int = 4
@@ -44,9 +44,6 @@ class ElevatorEnv:
         self.screen = pg.display.set_mode([size_x, size_y], pg.DOUBLEBUF)
         self.display = pg.display.set_caption("elevator")
         self.clock = pg.time.Clock()
-        self.init_env()
-
-    def init_env(self):
         self.bd = building.Building(self, self.screen)
 
     def step(self):

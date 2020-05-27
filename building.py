@@ -464,9 +464,6 @@ class Building(object):
             c = Lift(self.scr, i, self)
             self.lifts.append(c)
 
-        self.init_building()
-
-    def init_building(self):
         self.rest_passenger = self._env.passenger
         self.dest_passenger = 0
         self.simulation_time = 0

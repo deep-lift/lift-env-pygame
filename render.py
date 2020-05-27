@@ -3,11 +3,12 @@ import pygame as pg
 
 pg.init()
 
-SCREEN_HEIGHT: int = 800
-SCREEN_WIDTH: int = 600
+SCREEN_HEIGHT: int = 1800
+SCREEN_WIDTH: int = 1600
 METER_PER_PIXEL: float = 30   # 미터당 픽셀
 LIFT_WIDTH = 5
 FONT = pg.font.Font('freesansbold.ttf', 16)
+
 
 class Vector3:
     x: float
@@ -46,15 +47,13 @@ def DrawText(scr, x, y, str, color):
     textRect.left = x
     scr.blit(text, textRect)
 
-
 def ToScreenPos(pos):
     x: int = pos.x * METER_PER_PIXEL
     y: int = SCREEN_HEIGHT-(pos.y * METER_PER_PIXEL)
     return x, y
 
-
-def ToGamePos(x,y):
-    return Vector3(x / METER_PER_PIXEL, (SCREEN_HEIGHT - y) / METER_PER_PIXEL, 0)
+# def ToGamePos(x,y):
+#     return Vector3(x / METER_PER_PIXEL, (SCREEN_HEIGHT - y) / METER_PER_PIXEL, 0)
 
 
 BLACK = (0,  0,  0)
