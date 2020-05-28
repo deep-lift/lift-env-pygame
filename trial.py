@@ -13,4 +13,4 @@ def check(floor:int, direction: MoveState):
     print('direction : {}'.format(direction))
 
 
-check(3, MoveState.down)
+check(3, MoveState.DOWN)

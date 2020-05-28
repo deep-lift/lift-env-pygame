@@ -22,7 +22,7 @@ class Lift(object):
         self.act_fsm = FSM(State.Ready)
         self.pos = Vector3(0, 0, 0)
         self.passengers = []
-        self.move = MoveState.stop
+        self.move = MoveState.STOP
 
         self.act_fsm.add_transition(State.Ready, Event.Call, State.Accelate)
         self.act_fsm.add_transition(State.Ready, Event.DoorOpenRequest, State.DoorOpening)
@@ -54,7 +54,7 @@ class Lift(object):
         self.curr_floor = start_floor
         self.pos.x = LIFT_WIDTH*(no+1)
         self.pos.y = self.height * (start_floor + 1)
-        self.move = MoveState.stop
+        self.move = MoveState.STOP
         self.passengers.clear()
         self.reqState = State.End
         self.reqfloor = -1
@@ -64,7 +64,7 @@ class Lift(object):
         self.reqdecision_floor = -1
         self.next_transition_time =0
         self.next_event = State.End
-        self.req_floor = {MoveState.stop:-1, MoveState.down:-1, MoveState.up:-1}
+        self.req_floor = {MoveState.STOP:-1, MoveState.DOWN:-1, MoveState.UP:-1}
         self.verticals = []
 
         for i in range(self._building._env.floors):
@@ -117,10 +117,10 @@ class Lift(object):
 
             find = False
 
-            if self.move == MoveState.up:
-                find = self.req_floor[MoveState.down] == next_floor
+            if self.move == MoveState.UP:
+                find = self.req_floor[MoveState.DOWN] == next_floor
             else:
-                find = self.req_floor[MoveState.up] == next_floor
+                find = self.req_floor[MoveState.UP] == next_floor
 
             if find:
                 self.act_transition(Event.DecelerateStart)
@@ -151,11 +151,11 @@ class Lift(object):
     def set_floorbutton(self, floor: int, on: bool):
         self.verticals[floor].on = on
 
-        if self.move == MoveState.stop and on:
+        if self.move == MoveState.STOP and on:
             if floor > self.curr_floor:
-                self.set_direction(MoveState.up)
+                self.set_direction(MoveState.UP)
             elif floor < self.curr_floor:
-                self.set_direction(MoveState.down)
+                self.set_direction(MoveState.DOWN)
 
     def update(self):
         if self.chk_transtime():
@@ -169,11 +169,11 @@ class Lift(object):
                 f = self._building.floors[floor]
 
                 if floor == 0:
-                    if f.is_call(MoveState.up):
+                    if f.is_call(MoveState.UP):
                         self.act_transition(Event.DecelerateStart)
                         return
                 elif floor == (ElevatorEnv.floors - 1):
-                    if f.is_call(MoveState.down):
+                    if f.is_call(MoveState.DOWN):
                         self.act_transition(Event.DecelerateStart)
                         return
                 elif f.is_call(self.move):
@@ -204,7 +204,7 @@ class Lift(object):
 
 
     def act_ready(self): #아무것도 안하고 대기..
-        self.move = MoveState.stop
+        self.move = MoveState.STOP
         self.curr_speed = 0
         self.set_transition_delay(Event.End,0.5,False)
         self.request_action(self.curr_floor)
@@ -212,10 +212,10 @@ class Lift(object):
 
     def act_accelate(self):  # 정상속도로 되기 위해서 가속상태..
 
-        if self.curr_floor ==0 and self.move != MoveState.up:
-            self.move = MoveState.up
-        elif self.curr_floor == self._building._env.floors -1 and self.move != MoveState.down:
-            self.move = MoveState.down
+        if self.curr_floor ==0 and self.move != MoveState.UP:
+            self.move = MoveState.UP
+        elif self.curr_floor == self._building._env.floors -1 and self.move != MoveState.DOWN:
+            self.move = MoveState.DOWN
 
         self.curr_speed += self._building._env.fixedTime*1
         if self.curr_speed < self._building._env.speed:
@@ -230,7 +230,7 @@ class Lift(object):
     def act_decelerate(self):
 
         nextfloor = 0
-        if self.move.up == MoveState.up:
+        if self.move.UP == MoveState.UP:
             nextfloor = (int)(self.curr_floor) + 1
 
             if nextfloor >= ElevatorEnv.floors:
@@ -261,10 +261,10 @@ class Lift(object):
 
         elif len(self.passengers)==0 and len(f.passenger_list)>0 :
 
-            if self.move == MoveState.down:
-                self.move = MoveState.up
+            if self.move == MoveState.DOWN:
+                self.move = MoveState.UP
             else:
-                self.move = MoveState.down
+                self.move = MoveState.DOWN
 
             self.act_transition(Event.DoorOpenRequest)
 
@@ -290,9 +290,9 @@ class Lift(object):
         idx = 0
         stayfloor:int = self.curr_floor
 
-        if self.move == MoveState.up:
+        if self.move == MoveState.UP:
             stayfloor =  round(self.curr_floor)#Mathf.RoundToInt(currentFloor)
-        elif  self.move == MoveState.stop:
+        elif  self.move == MoveState.STOP:
             stayfloor = self.curr_floor
         else:
             stayfloor =  round(self.curr_floor)
@@ -336,13 +336,13 @@ class Lift(object):
 
         self.curr_floor = (self.pos.y / self._building._env.height) - 1
 
-        if self.move == MoveState.up:
+        if self.move == MoveState.UP:
             floor = self.curr_floor
             nextfloor = round(self.curr_floor)
-        elif self.move == MoveState.stop:
+        elif self.move == MoveState.STOP:
             floor = self.curr_floor
             nextfloor = floor
-        elif self.move == MoveState.down:
+        elif self.move == MoveState.DOWN:
             floor = math.ceil(self.curr_floor-0.1)
             nextfloor = round(self.curr_floor)
 
@@ -365,12 +365,12 @@ class Lift(object):
             self.set_transition_delay(Event.DoorCloseStart, random.uniform(0.6, 1.0),True)
             return True
 
-        if self.move == MoveState.up and p.dest_floor>self.curr_floor:
+        if self.move == MoveState.UP and p.dest_floor>self.curr_floor:
             self.passengers.append(p)
 
             self.set_transition_delay(Event.DoorCloseStart, random.uniform(0.6, 1.0),True)
             #SetFloorButton(p.destFloor, True)
-        elif self.move  == MoveState.down and p.dest_floor < self.curr_floor:
+        elif self.move  == MoveState.DOWN and p.dest_floor < self.curr_floor:
             self.passengers.append(p)
             self.set_transition_delay(Event.DoorCloseStart, random.uniform(0.6, 1.0),True)
             #SetFloorButton(p.destFloor, True)
@@ -382,10 +382,10 @@ class Lift(object):
 
     def get_floor_dist(self, floor):
         dist: float = floor - self.curr_floor
-        if self.move == MoveState.stop:
+        if self.move == MoveState.STOP:
             return abs(dist)
 
-        if self.move == MoveState.up:
+        if self.move == MoveState.UP:
             if dist > 0:
                 return abs(dist)
             else:
@@ -407,9 +407,9 @@ class Lift(object):
                 self.act_fsm.transition(Event.DoorOpenRequest)
 
             if floor > self.curr_floor:
-                self.move = MoveState.up
+                self.move = MoveState.UP
             else:
-                self.move = MoveState.down
+                self.move = MoveState.DOWN
 
             self.act_fsm.transition(Event.Call)
             return True
@@ -426,9 +426,9 @@ class Lift(object):
                      1)
         DrawText(self.scr, x, y, str(len(self.passengers)), BLUE)
 
-        if self.move == MoveState.up:
+        if self.move == MoveState.UP:
             DrawText(self.scr, x, y - METER_PER_PIXEL * 1.3, '^', BLUE)
-        elif self.move == MoveState.down:
+        elif self.move == MoveState.DOWN:
             DrawText(self.scr, x, y - METER_PER_PIXEL * 1.3, 'V', RED)
 
 
@@ -460,7 +460,7 @@ class Building(object):
         self.episode = 0
         self.is_done = False
 
-        for i in range(0,env_.elevator_count):
+        for i in range(0, env_.elevator_count):
             c = Lift(self.scr, i, self)
             self.lifts.append(c)
 
@@ -552,7 +552,7 @@ class Building(object):
         dist = 0
         button_dir = 0
 
-        if direction != MoveState.down:
+        if direction != MoveState.DOWN:
             button_dir = 1
 
         for lift in self.lifts:
@@ -571,7 +571,7 @@ class Building(object):
 
     def is_call(self):
         for f in self.floors:
-            if f.is_call(MoveState.up) or f.is_call(MoveState.down):
+            if f.is_call(MoveState.UP) or f.is_call(MoveState.DOWN):
                 return True
         return False
 
@@ -633,9 +633,9 @@ class Floor:
         self.checkTime = self._building.play_time
 
     def is_call(self, direction: MoveState):
-        if direction == MoveState.up:
+        if direction == MoveState.UP:
             return self.up_call
-        elif direction == MoveState.down:
+        elif direction == MoveState.DOWN:
             return self.down_call
         else:
             return False
@@ -667,8 +667,8 @@ class Floor:
                 self.down_call = True
             if self.down_call and self.up_call:
                 break
-        self.set_button(MoveState.down, self.down_call)
-        self.set_button(MoveState.up, self.up_call)
+        self.set_button(MoveState.DOWN, self.down_call)
+        self.set_button(MoveState.UP, self.up_call)
         self.checkTime = self._building.play_time
 
     def add_passenger(self, passenger_count: int):

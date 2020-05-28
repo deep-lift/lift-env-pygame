@@ -1,10 +1,14 @@
+import sys
 from enum import Enum
+import pygame as pg
+
+FIXED_TIME = 0.1
 
 
 class MoveState(Enum):
-    stop = 0
-    down = 1
-    up = 2
+    STOP = 0
+    DOWN = 1
+    UP = 2
 
 
 class Passenger:
@@ -13,12 +17,8 @@ class Passenger:
         self.dest_floor = dest
         self.wait_time = 0
 
-FIXED_TIME = 0.1
-
 
 import building
-import pygame as pg
-import sys
 from render import *
 
 class ElevatorEnv:
@@ -60,4 +60,4 @@ class ElevatorEnv:
 
 if __name__ == '__main__':
     print(ElevatorEnv.fixedTime)
-    print(MoveState.stop)
+    print(MoveState.STOP)

@@ -6,7 +6,6 @@ def main():
 
     while not env.bd.is_done:
         env.step()
-
     print("Elevator main loop is ended.")
 
 
