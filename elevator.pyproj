@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>62e0cea8-fdb3-48f8-806f-51e8090ca015</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>env_mian.py</StartupFile>
+    <StartupFile>env_main.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -22,14 +22,17 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="argslist.py" />
     <Compile Include="building.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="elevator.py" />
-    <Compile Include="env_mian.py" />
+    <Compile Include="env_main.py" />
     <Compile Include="fsm.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="render.py" />
+    <Compile Include="trial.py" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="CondaEnv|CondaEnv|Anaconda3" />

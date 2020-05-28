@@ -2,7 +2,7 @@ import elevator
 from argslist import *
 
 def main():
-    env = elevator.ElevatorEnv(SCREEN_HEIGHT, SCREEN_WIDTH)
+    env = elevator.ElevatorEnv(SCREEN_WIDTH,SCREEN_HEIGHT)
 
     while not env.bd.is_done:
         env.step()

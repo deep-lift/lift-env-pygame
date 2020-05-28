@@ -5,6 +5,7 @@ import pygame as pg
 from elevator import *
 from fsm import *
 from render import *
+from argslist import *
 
 
 class Lift(object):
@@ -726,3 +727,6 @@ class VerticalLine(object):
                      [x, y],
                      [x, y + self.env.height * METER_PER_PIXEL], 3
                      )
+
+        if self.on:
+            DrawText(self.scr, x + METER_PER_PIXEL * 3, y + 3, 'O', RED)
