@@ -1,14 +1,6 @@
 import math
 import pygame as pg
-
-pg.init()
-
-SCREEN_HEIGHT: int = 1800
-SCREEN_WIDTH: int = 1600
-METER_PER_PIXEL: float = 30   # 미터당 픽셀
-LIFT_WIDTH = 5
-FONT = pg.font.Font('freesansbold.ttf', 16)
-
+from argslist import *
 
 class Vector3:
     x: float

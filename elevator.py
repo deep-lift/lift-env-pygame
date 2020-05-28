@@ -1,15 +1,13 @@
 import sys
 from enum import Enum
 import pygame as pg
-
-FIXED_TIME = 0.1
+from argslist import *
 
 
 class MoveState(Enum):
     STOP = 0
     DOWN = 1
     UP = 2
-
 
 class Passenger:
     def __init__(self, start: int, dest: int):
@@ -20,6 +18,7 @@ class Passenger:
 
 import building
 from render import *
+
 
 class ElevatorEnv:
     elevator_count: int = 4
@@ -51,7 +50,7 @@ class ElevatorEnv:
             if event.type == pg.QUIT:
                 sys.exit()
 
-        self.clock.tick(1)
+        self.clock.tick(100)
         self.bd.update_step()
         self.bd.render()
 

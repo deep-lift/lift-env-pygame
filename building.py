@@ -104,13 +104,13 @@ class Lift(object):
         if int(floor) == next_floor:
             return
 
-        if ElevatorEnv.heuristic:
+        if self._building._env.heuristic:
             if not self.verticals[int(next_floor)].on:
                 self.request_action(next_floor)
-            elif self.act_curr_state != State.Decelerate:
-                self.act_transition(Event.DecelerateStart)
+            elif self.act_fsm.curr_state != State.Decelerate:
+                self.act_fsm.transition(Event.DecelerateStart)
             elif self.req_floor[self.move] == next_floor:
-                self.act_transition(Event.DecelerateStart)
+                self.act_fsm.transition(Event.DecelerateStart)
                 return
             if len(self.passengers) > 0:
                 return
@@ -123,7 +123,7 @@ class Lift(object):
                 find = self.req_floor[MoveState.UP] == next_floor
 
             if find:
-                self.act_transition(Event.DecelerateStart)
+                self.act_fsm.transition(Event.DecelerateStart)
         else:
             raise NotImplementedError
 
@@ -170,28 +170,28 @@ class Lift(object):
 
                 if floor == 0:
                     if f.is_call(MoveState.UP):
-                        self.act_transition(Event.DecelerateStart)
+                        self.act_fsm.transition(Event.DecelerateStart)
                         return
-                elif floor == (ElevatorEnv.floors - 1):
+                elif floor == (self._building._env.floors - 1):
                     if f.is_call(MoveState.DOWN):
-                        self.act_transition(Event.DecelerateStart)
+                        self.act_fsm.transition(Event.DecelerateStart)
                         return
                 elif f.is_call(self.move):
-                    self.act_transition(Event.DecelerateStart)
+                    self.act_fsm.transition(Event.DecelerateStart)
                     return
 
-                if len(self.passengers)==0 and self._building.iscall() == False:
-                    self.act_transition(Event.DecelerateStart)
+                if len(self.passengers) == 0 and not self._building.is_call():
+                    self.act_fsm.transition(Event.DecelerateStart)
                     return
 
             return
 
-        if self.act_curr_state == State.Ready:
+        if self.act_fsm.curr_state == State.Ready:
             if self._building.play_time - self.reqTime < 0.5:
                 return
         else:
 
-            if self.reqState == self.act_curr_state and self.reqfloor == floor:
+            if self.reqState == self.act_fsm.curr_state and self.reqfloor == floor:
                 return
 
         self.RequestDecision()
@@ -233,8 +233,8 @@ class Lift(object):
         if self.move.UP == MoveState.UP:
             nextfloor = (int)(self.curr_floor) + 1
 
-            if nextfloor >= ElevatorEnv.floors:
-                nextfloor = ElevatorEnv.floors - 1
+            if nextfloor >= self._building._env.floors:
+                nextfloor = self._building._env.floors - 1
         else:
             nextfloor = self.curr_floor
 
@@ -242,14 +242,14 @@ class Lift(object):
 
         if abs(dist)<= self.curr_speed*FIXED_TIME or abs(dist) < 0.09:
             self.pos.y =  self._building.floors[nextfloor].pos.y
-            self.act_transition(Event.Arrived)
+            self.act_fsm.transition(Event.Arrived)
             self.curr_speed = 0
             return
 
         if self.curr_speed < 0.65:
             return
 
-        self.curr_speed -= FIXED_TIME * ElevatorEnv.decelerate
+        self.curr_speed -= FIXED_TIME * self._building._env.decelerate
 
     def act_movestop(self):
         floor = int(self.curr_floor)
@@ -257,7 +257,7 @@ class Lift(object):
         self.curr_speed = 0
 
         if self.verticals[floor].on or f.is_call(self.move):
-            self.act_transition(Event.DoorOpenRequest)
+            self.act_fsm.transition(Event.DoorOpenRequest)
 
         elif len(self.passengers)==0 and len(f.passenger_list)>0 :
 
@@ -266,13 +266,13 @@ class Lift(object):
             else:
                 self.move = MoveState.DOWN
 
-            self.act_transition(Event.DoorOpenRequest)
+            self.act_fsm.transition(Event.DoorOpenRequest)
 
         elif len(self.passengers) == 0 and len(f.passenger_list)==0:
-            self.act_transition(Event.EmptyPassenger)
+            self.act_fsm.transition(Event.EmptyPassenger)
 
         else:
-            self.act_transition(Event.DoorCloseEnd)
+            self.act_fsm.transition(Event.DoorCloseEnd)
 
         if self.req_floor[self.move] == floor:
             self.req_floor[self.move] = -1
@@ -304,7 +304,7 @@ class Lift(object):
                 boardingDelay += random.uniform(0.6, 1.0)
 
                 refTime = abs(
-                    (p.start_floor - p.dest_floor) * ElevatorEnv.height / ElevatorEnv.speed / 2
+                    (p.start_floor - p.dest_floor) * self._building._env.height / self._building._env.speed / 2
                 )
             else:
                 idx += 1
@@ -389,7 +389,7 @@ class Lift(object):
             if dist > 0:
                 return abs(dist)
             else:
-                dist += ElevatorEnv.floors - floor
+                dist += self._building._env.floors - floor
                 return dist
 
         if dist <= 0:
@@ -502,9 +502,12 @@ class Building(object):
         self.is_done = False
 
     def simulation_passenger(self):
+        # 해당 step에서 지금 현재 운반중인 승객들이 총 승객의 수의 30% 이상 출연해 있는 상태면 더 만들진 말자
         if self.curr_passenger > self._env.passenger * 0.3:
             return
         new_passenger = random.randint(0, self.rest_passenger)
+
+        # 1층에서 승객들이 나오게 변경
         floor_passenger = [0 for i in range(len(self.floors))]
         floor_passenger[0] = random.randint(0, (int)(new_passenger * 0.8))
         rest = new_passenger - floor_passenger[0]
@@ -519,7 +522,7 @@ class Building(object):
 
             if floor_passenger[i] > 0:
                 # todo : 여기 뭐지?
-                # dest_list = self.floors[i].add_passenger(floor_passenger[i])
+                dest_list = self.floors[i].add_passenger(floor_passenger[i])
                 self.add_passenger += floor_passenger[i]
                 self.rest_passenger -= floor_passenger[i]
 
@@ -606,11 +609,7 @@ class Floor:
         self.floor_no = 0
         self._building = b
         self.passenger_list = []
-        self.up_call: bool = False
-        self.down_call: bool = False
-        self.pos = Vector3(0, 0, 0)
-        self.checkTime = self._building.play_time
-        self.num_passenger = 0
+
 
     def __init__(self, scr, b: Building, no: int):
         self.scr = scr
@@ -618,19 +617,15 @@ class Floor:
         self._building = b
         self.passenger_list = []
         self.init(no)
-        self.up_call: bool = False
-        self.down_call: bool = False
-        self.pos = Vector3(0, 0, 0)
-        self.checkTime = self._building.play_time
-        self.num_passenger = 0
 
     def init(self, f: int):
         self.up_call: bool = False
         self.down_call: bool = False
         self.pos = Vector3(0, 0, 0)
-        self.pos.y = self._building._env.height*(f+1)
+        self.pos.y = self._building._env.height * (f + 1)
         self.passenger_list.clear()
         self.checkTime = self._building.play_time
+
 
     def is_call(self, direction: MoveState):
         if direction == MoveState.UP:
