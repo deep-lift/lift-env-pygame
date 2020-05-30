@@ -27,9 +27,15 @@ class Lift(object):
 
         self.act_fsm.add_transition(State.Ready, Event.Call, State.Accelate)
         self.act_fsm.add_transition(State.Ready, Event.DoorOpenRequest, State.DoorOpening)
+
         self.act_fsm.add_transition(State.Accelate, Event.AccelateEnd, State.NormalMove)
         self.act_fsm.add_transition(State.Accelate, Event.DecelerateStart, State.NormalMove)
+        self.act_fsm.add_transition(State.Accelate, Event.Arrived, State.MoveStop)
+
         self.act_fsm.add_transition(State.NormalMove, Event.DecelerateStart, State.Decelerate)
+        self.act_fsm.add_transition(State.NormalMove, Event.Arrived, State.MoveStop);
+
+
         self.act_fsm.add_transition(State.Decelerate, Event.Arrived, State.MoveStop)
         self.act_fsm.add_transition(State.MoveStop, Event.DoorOpenRequest, State.DoorOpening)
         self.act_fsm.add_transition(State.MoveStop, Event.EmptyPassenger, State.Ready)
@@ -106,13 +112,15 @@ class Lift(object):
             return
 
         if self._building._env.heuristic:
-            if not self.verticals[int(next_floor)].on:
+            if not self.verticals[int(next_floor)].on and not self._building.floors[next_floor].is_call(self.move):
                 self.request_action(next_floor)
             elif self.act_fsm.curr_state != State.Decelerate:
                 self.act_fsm.transition(Event.DecelerateStart)
             elif self.req_floor[self.move] == next_floor:
                 self.act_fsm.transition(Event.DecelerateStart)
-                return
+            elif next_floor == 0 or next_floor  ==  self._building._env.floors -1:
+                 self.act_fsm.transition(Event.DecelerateStart)
+
             if len(self.passengers) > 0:
                 return
 
@@ -137,20 +145,20 @@ class Lift(object):
 
         if self.pos.y >= self._building.floors[self._building._env.floors - 1].pos.y:
             self.pos.y = self._building.floors[self._building._env.floors - 1].pos.y
-            self.act_fsm.transition(Event.Arrived)
+            self.set_direction(MoveState.DOWN);
 
         elif self.pos.y <= self._building.floors[0].pos.y:
             self.pos.y = self._building.floors[0].pos.y
-            self.act_fsm.transition(Event.Arrived)
+            self.set_direction(MoveState.UP);
 
-        self.curr_floor = (self.pos.y / self._building._env.height) - 1
+        self.curr_floor = ((self.pos.y / self._building._env.height) - 1)+0.01
         self.chk_floor()
 
     def set_direction(self, m):
         self.move = m
 
     def set_floorbutton(self, floor: int, on: bool):
-        self.verticals[floor].on = on
+        #self.verticals[floor].on = on
 
         if self.move == MoveState.STOP and on:
             if floor > self.curr_floor:
@@ -162,6 +170,7 @@ class Lift(object):
         if self.chk_transtime():
             if self.act_fsm.curr_state in self.elevatorAction.keys():
                 self.elevatorAction[self.act_fsm.curr_state]()
+
         self.update_pos()
 
     def request_action(self, floor: int):
@@ -213,10 +222,11 @@ class Lift(object):
 
     def act_accelate(self):  # 정상속도로 되기 위해서 가속상태..
 
-        if self.curr_floor ==0 and self.move != MoveState.UP:
-            self.move = MoveState.UP
-        elif self.curr_floor == self._building._env.floors -1 and self.move != MoveState.DOWN:
-            self.move = MoveState.DOWN
+
+        #if self.curr_floor ==0 and self.move != MoveState.UP:
+        #    self.move = MoveState.UP
+        #elif self.curr_floor == self._building._env.floors -1 and self.move != MoveState.DOWN:
+        #    self.move = MoveState.DOWN
 
         self.curr_speed += self._building._env.fixedTime*1
         if self.curr_speed < self._building._env.speed:
@@ -230,8 +240,8 @@ class Lift(object):
 
     def act_decelerate(self):
 
-        nextfloor = 0
-        if self.move.UP == MoveState.UP:
+        nextfloor:int = 0
+        if self.move == MoveState.UP:
             nextfloor = (int)(self.curr_floor) + 1
 
             if nextfloor >= self._building._env.floors:
@@ -239,9 +249,11 @@ class Lift(object):
         else:
             nextfloor = self.curr_floor
 
+        nextfloor = int(nextfloor)
+
         dist = self._building.floors[nextfloor].pos.y - self.pos.y
 
-        if abs(dist)<= self.curr_speed*FIXED_TIME or abs(dist) < 0.09:
+        if dist*self.move_dir[self.move.value]<=0 or abs(dist) <= 0.65:
             self.pos.y =  self._building.floors[nextfloor].pos.y
             self.act_fsm.transition(Event.Arrived)
             self.curr_speed = 0
@@ -291,6 +303,8 @@ class Lift(object):
         idx = 0
         stayfloor:int = self.curr_floor
 
+        
+
         if self.move == MoveState.UP:
             stayfloor =  round(self.curr_floor)#Mathf.RoundToInt(currentFloor)
         elif  self.move == MoveState.STOP:
@@ -302,6 +316,7 @@ class Lift(object):
             p: Passenger = self.passengers[idx]
             if p.dest_floor == stayfloor:
                 del self.passengers[idx]
+                self.verticals[int(stayfloor)].on = False
                 boardingDelay += random.uniform(0.6, 1.0)
 
                 refTime = abs(
@@ -344,7 +359,7 @@ class Lift(object):
             floor = self.curr_floor
             nextfloor = floor
         elif self.move == MoveState.DOWN:
-            floor = math.ceil(self.curr_floor-0.1)
+            floor = math.ceil(self.curr_floor)
             nextfloor = round(self.curr_floor)
 
         return int(floor),int(nextfloor)
@@ -368,7 +383,6 @@ class Lift(object):
 
         if self.move == MoveState.UP and p.dest_floor>self.curr_floor:
             self.passengers.append(p)
-
             self.set_transition_delay(Event.DoorCloseStart, random.uniform(0.6, 1.0),True)
             #SetFloorButton(p.destFloor, True)
         elif self.move  == MoveState.DOWN and p.dest_floor < self.curr_floor:
@@ -378,11 +392,12 @@ class Lift(object):
             #AddReward(1f / (Time.fixedTime - p.timeWaiting))
             #p.timeWaiting = Time.fixedTime
         else:
+            self.verticals[p.dest_floor].on = False
             return False
         return True
 
     def get_floor_dist(self, floor):
-        dist: float = floor - self.curr_floor
+        dist =  abs(floor - self.curr_floor)
         if self.move == MoveState.STOP:
             return abs(dist)
 
@@ -401,7 +416,7 @@ class Lift(object):
         return dist
 
     def set_callrequest(self, floor:int, direction: MoveState):
-        self.req_floor[direction] = floor
+        #self.req_floor[direction] = floor
 
         if self.act_fsm.curr_state == State.Ready:
             if floor == self.curr_floor:

@@ -21,7 +21,7 @@ from render import *
 
 
 class ElevatorEnv:
-    elevator_count: int = 4
+    elevator_count: int = 1
     floors: int = 10
     passenger: int = 100
     height: float = 3.5
@@ -34,7 +34,7 @@ class ElevatorEnv:
     capacity: int = 15
     actionTofloor: int = 0
     fixedTime: float = FIXED_TIME
-    maxstep: int = 5000
+    maxstep: int = 50000
     bd:building
     heuristic: bool = True
 
