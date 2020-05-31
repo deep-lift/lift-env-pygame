@@ -6,6 +6,7 @@ from elevator import *
 from fsm import *
 from render import *
 from argslist import *
+from observation import *
 
 
 class Lift(object):
@@ -24,6 +25,8 @@ class Lift(object):
         self.pos = Vector3(0, 0, 0)
         self.passengers = []
         self.move = MoveState.STOP
+       
+       
 
         self.act_fsm.add_transition(State.Ready, Event.Call, State.Accelate)
         self.act_fsm.add_transition(State.Ready, Event.DoorOpenRequest, State.DoorOpening)
@@ -57,26 +60,134 @@ class Lift(object):
         self.elevatorAction[State.Accelate] = self.act_accelate          # 이동에 대한 가속상태
         self.elevatorAction[State.Turn] = self.act_turn
 
-    def init(self, no: int, start_floor: int):
+        self.state = observation()
+
+
+        self.verticals = []
+
+    def reset(self,start_floor: int):
         self.curr_floor = start_floor
-        self.pos.x = LIFT_WIDTH*(no+1)
+        self.pos.x = LIFT_WIDTH*(self.car_no+1)
         self.pos.y = self.height * (start_floor + 1)
         self.move = MoveState.STOP
         self.passengers.clear()
         self.reqState = State.End
         self.reqfloor = -1
         self.reqTime  = 0
-        self.requestDecision = False
+        self.reward =0
+        self.req_decision = True
         self.cool_time = 0
         self.reqdecision_floor = -1
         self.next_transition_time =0
         self.next_event = State.End
         self.req_floor = {MoveState.STOP:-1, MoveState.DOWN:-1, MoveState.UP:-1}
-        self.verticals = []
+        self.action = MoveState.STOP
+        self.done = False
+        self.state.reset()
+
+        
 
         for i in range(self._building._env.floors):
-            vline = VerticalLine(self.scr, self._building._env, i, self.pos.x)
-            self.verticals.append(vline)
+
+            if i>=len(self.verticals):
+                v = VerticalLine(self.scr, self._building._env, i, self.pos.x)
+                self.verticals.append(v)
+            else:
+                self.verticals[i].reset()
+
+
+    def make_state(self,state:observation):
+        state.add(self._building.rest_passenger)
+
+        for f in self._building.floors:
+            state.add(len(f.passengers))
+
+            state.add(f.is_call(MoveState.DOWN))
+            state.add(f.is_call(MoveState.UP))
+
+
+        floor,next_floor = self.get_nextfloor()
+        state.add(floor)
+        state.add(next_floor)
+        state.add(self.move.value)
+        state.add(self.act_fsm.curr_state)
+        state.add(len(self.passengers))
+
+        for v in self.verticals:
+            state.add(v.on)
+
+    def collect_obs(self):
+
+        for lift in self._building.lifts:
+            lift.make_state(self.state)
+
+        return self.state.obsvector
+        
+  
+    def decision_action(self,action:int):
+
+        if self.req_decision != True:
+            return
+
+
+        self.reward = 0
+        self.req_decision = False
+        
+        floor,next_floor = self.chk_floor()
+
+        f = self._building.floors[action]
+        
+
+        if action == MoveState.Stop:
+            if self.act_fsm.curr_state == State.Ready:
+                while len(f.passengers)>0:
+                    dir = random.uniform(0,2)
+                if f.is_call(dir):
+                    self.act_fsm(Event.DoorOpenRequest)
+                    self.set_direction(dir)
+                    return
+
+
+        elif action == MoveState.DOWN: #// 현재 이동중 방향과 다르게 왔을 경우..
+            if floor == 0:
+                return
+
+            if self.move != action:
+
+                if floor != 0 and len(self.passengers)>0 and self.move != MoveState.Stop:
+                    return
+
+                if len(self.passengers)>0:
+                    return
+
+                elif self.curr_speed >0:
+                    self.act_fsm.transition(Event.DecelerateStart)
+                    return
+
+
+                self.set_direction(action)
+                self.act_fsm(Event.Call)
+        else:
+
+            if floor == self._building._env.floors -1:
+                return
+
+            if self.move != action:
+
+                
+                if floor != self._building._env.floors-1 and len(self.passengers)>0 and self.move != MoveState.Stop:
+                    return
+
+                if len(self.passengers)>0:
+                    return
+                elif self.curr_speed >0:
+                    self.act_fsm.transition(Event.DecelerateStart)
+                    return
+
+                self.set_direction(action)
+                self.act_fsm(Event.Call)
+
+       
 
     def is_enterable(self):
         return True
@@ -204,13 +315,13 @@ class Lift(object):
             if self.reqState == self.act_fsm.curr_state and self.reqfloor == floor:
                 return
 
-        self.RequestDecision()
+       
 
         # todo : 여기 맞는건가?!!
         self.reqState = self.act_fsm.get_current_state()
         self.reqdecision_floor = floor
         self.reqTime = self._building.play_time
-        self.requestDecision = True
+        self.req_decision = True
 
 
     def act_ready(self): #아무것도 안하고 대기..
@@ -272,7 +383,7 @@ class Lift(object):
         if self.verticals[floor].on or f.is_call(self.move):
             self.act_fsm.transition(Event.DoorOpenRequest)
 
-        elif len(self.passengers)==0 and len(f.passenger_list)>0 :
+        elif len(self.passengers)==0 and len(f.passengers)>0 :
 
             if self.move == MoveState.DOWN:
                 self.move = MoveState.UP
@@ -281,7 +392,7 @@ class Lift(object):
 
             self.act_fsm.transition(Event.DoorOpenRequest)
 
-        elif len(self.passengers) == 0 and len(f.passenger_list)==0:
+        elif len(self.passengers) == 0 and len(f.passengers)==0:
             self.act_fsm.transition(Event.EmptyPassenger)
 
         else:
@@ -331,9 +442,9 @@ class Lift(object):
     def take_lift(self,floor:int):
         f = self._building.floors[floor]
         idx = 0
-        while idx <len(f.passenger_list):
-            if self.take_passenger(f.passenger_list[idx]) == True:
-                del f.passenger_list[idx]
+        while idx <len(f.passengers):
+            if self.take_passenger(f.passengers[idx]) == True:
+                del f.passengers[idx]
             else:
                 idx+=1
 
@@ -476,9 +587,9 @@ class Building(object):
         self.episode = 0
         self.is_done = False
 
-        for i in range(0, env_.elevator_count):
-            c = Lift(self.scr, i, self)
-            self.lifts.append(c)
+        #for i in range(0, env_.elevator_count):
+        #    c = Lift(self.scr, i, self)
+        #    self.lifts.append(c)
 
         self.rest_passenger = self._env.passenger
         self.dest_passenger = 0
@@ -494,20 +605,24 @@ class Building(object):
         dist = SCREEN_WIDTH / (self._env.elevator_count + 1)
         rest = self._env.elevator_count % 2
         mok = self._env.elevator_count / 2
+        self.reset()
 
+    
+
+    def reset(self):
         for i in range(self._env.elevator_count):
             if i >= len(self.lifts):
-                car = Lift(self)
+                car = Lift(self.scr, i, self)
                 self.lifts.append(car)
-            self.lifts[i].pos.x = dist * (i+1)
-            self.lifts[i].init(i, random.randint(0, 3))
+
+            self.lifts[i].reset(random.randint(0, 3))
 
         for i in range(self._env.floors):
             if i >= len(self.floors):
                 f = Floor(self.scr, self, i)
                 self.floors.append(f)
             else:
-                self.floors[i].init(i)
+                self.floors[i].reset()
 
             if len(self.call_reqreserve) <= i:
                 self.call_reqreserve.append([-1,-1])
@@ -516,6 +631,37 @@ class Building(object):
 
         self.step = 0
         self.is_done = False
+        self.play_time = 0
+
+    def get_state(self):
+        obs_list = []
+
+        for lift in self.lifts:
+            obs_list.append(lift.collect_obs())
+
+        return obs_list;
+
+    def env_info(self):
+   
+        stats = []
+        rewards = []
+        dones = []
+        for lift in self.lifts:
+
+            if lift.req_decision or self.is_done:
+                lift.collect_obs()
+                stats.append(lift.state.obsvector)
+                rewards.append(lift.reward)
+                dones.append(self.is_done)
+            else:
+                stats.append([])
+                rewards.append(0)
+                dones.append(False)
+
+
+        return stats,rewards,dones
+
+
 
     def simulation_passenger(self):
         # 해당 step에서 지금 현재 운반중인 승객들이 총 승객의 수의 30% 이상 출연해 있는 상태면 더 만들진 말자
@@ -595,15 +741,49 @@ class Building(object):
         return False
 
     def update_step(self):
-        self.play_time += 0.1  # todo : 단위가 궁금!
+        self.play_time += self._env.fixedTime # todo : 단위가 궁금!
 
-        if self.step >= self._env.maxstep:
+        if self.step >= self._env.maxstep or self.is_success():
             self.is_done = True
-            return
-
+            
+     
         self.simulation_passenger()
         self.update_lift()
         self.step += 1
+
+        if self._env.heuristic:
+            return [],[],[]
+
+     
+        return self.env_info()
+
+
+    def is_success(self):
+         
+        if self.rest_passenger >0:
+            return False
+
+        for lift in self.lifts:
+            if len(lift.passengers) >0:
+                return False
+
+        for floor in self.floors:
+            if len(floor.passengers) >0:
+                return False
+
+        return True
+     
+
+
+    def decision_actions(self,actions:list):
+
+        no:int =0
+        for action in actions:
+            self.lifts[no].decision_action(action)
+            no = no+1
+     
+
+
 
     def render(self):
 
@@ -624,23 +804,27 @@ class Floor:
         self.scr = scr
         self.floor_no = 0
         self._building = b
-        self.passenger_list = []
+        self.passengers = []
 
 
     def __init__(self, scr, b: Building, no: int):
         self.scr = scr
         self.floor_no = no
         self._building = b
-        self.passenger_list = []
-        self.init(no)
+        self.passengers = []
+        self.pos = Vector3(0, 0, 0)
+        self.pos.y = self._building._env.height * (no + 1)
+        self.reset()
 
-    def init(self, f: int):
+    def reset(self):
         self.up_call: bool = False
         self.down_call: bool = False
-        self.pos = Vector3(0, 0, 0)
-        self.pos.y = self._building._env.height * (f + 1)
-        self.passenger_list.clear()
+       
+        self.passengers.clear()
         self.checkTime = self._building.play_time
+
+  
+
 
 
     def is_call(self, direction: MoveState):
@@ -671,7 +855,7 @@ class Floor:
     def chk_call_button(self):
         self.up_call = False
         self.down_call = False
-        for p in self.passenger_list:
+        for p in self.passengers:
             if p.dest_floor > self.floor_no:
                 self.up_call = True
             else:
@@ -691,15 +875,15 @@ class Floor:
                 if p.dest_floor != self.floor_no:
                     dest_list.append(p)
                     break
-            self.passenger_list.append(p)
+            self.passengers.append(p)
         self.chk_call_button()
         return dest_list
 
     def take_passenger(self, lift: Lift):
         idx = 0
-        while idx < len(self.passenger_list):
-            if lift.take_passenger(self.passenger_list[idx]):
-                self.passenger_list.remove(idx)
+        while idx < len(self.passengers):
+            if lift.take_passenger(self.passengers[idx]):
+                self.passengers.remove(idx)
             else:
                 ++idx
 
@@ -712,7 +896,7 @@ class Floor:
         pg.draw.line(self.scr, WHITE, [x, y], [SCREEN_WIDTH, y], 3)
 
         DrawText(self.scr, x + METER_PER_PIXEL, y - METER_PER_PIXEL, str(self.floor_no), BLUE)
-        DrawText(self.scr, x + METER_PER_PIXEL, y + 3, str(len(self.passenger_list)), RED)
+        DrawText(self.scr, x + METER_PER_PIXEL, y + 3, str(len(self.passengers)), RED)
 
         if self.up_call:
             DrawText(self.scr, x + METER_PER_PIXEL * 3, y - METER_PER_PIXEL, '^', BLUE)
@@ -727,9 +911,9 @@ class VerticalLine(object):
         self.env = env
         self.floor = floor
         self.pos = Vector3(x, (floor + 1) * self.env.height, 0)
-        self.on = False
+        self.reset()
 
-    def init(self):
+    def reset(self):
         self.on = False
 
     def set(self, on: bool):

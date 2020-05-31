@@ -20,6 +20,7 @@ import building
 from render import *
 
 
+
 class ElevatorEnv:
     elevator_count: int = 4
     floors: int = 10
@@ -55,6 +56,31 @@ class ElevatorEnv:
         self.bd.render()
 
         pg.display.update()
+
+
+    def step(self,actions:list):
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                sys.exit()
+    
+        self.clock.tick(100)
+        self.bd.decision_actions(actions)
+        states,rewards,dones = self.bd.update_step()
+        self.bd.render()
+        pg.display.update()
+        return states,rewards,dones
+      
+       
+    def reset(self):
+        self.bd.reset()
+
+        return  self.bd.env_info()
+
+
+
+
+
+
 
 
 if __name__ == '__main__':

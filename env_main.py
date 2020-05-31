@@ -4,8 +4,10 @@ from argslist import *
 def main():
     env = elevator.ElevatorEnv(SCREEN_WIDTH,SCREEN_HEIGHT)
 
+    stats,rewards,dones = env.reset()
+
     while not env.bd.is_done:
-        env.step()
+        env.step([])
     print("Elevator main loop is ended.")
 
 
