@@ -133,12 +133,12 @@ class Lift(object):
         self.reward = 0
         self.req_decision = False
         
-        floor,next_floor = self.chk_floor()
+        floor,next_floor = self.get_nextfloor()
 
         f = self._building.floors[action]
         
-
-        if action == MoveState.Stop:
+       
+        if action == MoveState.STOP:
             if self.act_fsm.curr_state == State.Ready:
                 while len(f.passengers)>0:
                     dir = random.uniform(0,2)
@@ -147,6 +147,8 @@ class Lift(object):
                     self.set_direction(dir)
                     return
 
+            self.act_fsm.transition(Event.DecelerateStart)
+            return
 
         elif action == MoveState.DOWN: #// 현재 이동중 방향과 다르게 왔을 경우..
             if floor == 0:
@@ -154,7 +156,7 @@ class Lift(object):
 
             if self.move != action:
 
-                if floor != 0 and len(self.passengers)>0 and self.move != MoveState.Stop:
+                if floor != 0 and len(self.passengers)>0 and self.move != MoveState.STOP:
                     return
 
                 if len(self.passengers)>0:
@@ -165,8 +167,8 @@ class Lift(object):
                     return
 
 
-                self.set_direction(action)
-                self.act_fsm(Event.Call)
+            self.set_direction(action)
+            self.act_fsm(Event.Call)
         else:
 
             if floor == self._building._env.floors -1:
@@ -175,7 +177,7 @@ class Lift(object):
             if self.move != action:
 
                 
-                if floor != self._building._env.floors-1 and len(self.passengers)>0 and self.move != MoveState.Stop:
+                if floor != self._building._env.floors-1 and len(self.passengers)>0 and self.move != MoveState.STOP:
                     return
 
                 if len(self.passengers)>0:
@@ -184,8 +186,8 @@ class Lift(object):
                     self.act_fsm.transition(Event.DecelerateStart)
                     return
 
-                self.set_direction(action)
-                self.act_fsm(Event.Call)
+            self.set_direction(action)
+            self.act_fsm.transition(Event.Call)
 
        
 
@@ -222,6 +224,9 @@ class Lift(object):
         if int(floor) == next_floor:
             return
 
+
+
+
         if self._building._env.heuristic:
             if not self.verticals[int(next_floor)].on and not self._building.floors[next_floor].is_call(self.move):
                 self.request_action(next_floor)
@@ -244,8 +249,25 @@ class Lift(object):
 
             if find:
                 self.act_fsm.transition(Event.DecelerateStart)
-        else:
-            raise NotImplementedError
+
+            return
+
+
+       #if next_floor == 0:
+       #    self.move =MoveState.UP
+       #elif next_floor == self._building._env.floors-1:
+       #    self.move =MoveState.DOWN
+
+
+        if self.reqdecision_floor == next_floor:
+            return;
+
+        if self._building.floors[next_floor].is_call(self.move):
+            self.request_action(next_floor)
+
+       
+
+
 
     def update_pos(self):
         if self.cool_time > self._building.play_time:
@@ -266,7 +288,7 @@ class Lift(object):
         self.chk_floor()
 
     def set_direction(self, m):
-        self.move = m
+        self.move = MoveState(m)
 
     def set_floorbutton(self, floor: int, on: bool):
         #self.verticals[floor].on = on
@@ -310,13 +332,15 @@ class Lift(object):
         if self.act_fsm.curr_state == State.Ready:
             if self._building.play_time - self.reqTime < 0.5:
                 return
-        else:
-
-            if self.reqState == self.act_fsm.curr_state and self.reqfloor == floor:
-                return
-
        
 
+        if self.reqState == self.act_fsm.curr_state and self.reqfloor == floor:
+                return
+
+        self.request_decision(floor)
+        
+
+    def request_decision(self,floor):
         # todo : 여기 맞는건가?!!
         self.reqState = self.act_fsm.get_current_state()
         self.reqdecision_floor = floor
@@ -709,8 +733,8 @@ class Building(object):
     def call_request(self, floor: int, direction: MoveState):
         if self._env.heuristic:
             self.search_nearest_car(floor, direction)
-        else:
-            raise NotImplementedError
+       
+
 
     def search_nearest_car(self, floor:int, direction: MoveState): # script code
         min = 1000000.0
@@ -776,14 +800,11 @@ class Building(object):
 
 
     def decision_actions(self,actions:list):
-
         no:int =0
         for action in actions:
             self.lifts[no].decision_action(action)
             no = no+1
      
-
-
 
     def render(self):
 
@@ -824,9 +845,6 @@ class Floor:
         self.checkTime = self._building.play_time
 
   
-
-
-
     def is_call(self, direction: MoveState):
         if direction == MoveState.UP:
             return self.up_call
@@ -846,6 +864,8 @@ class Floor:
     #             if p.dest_floor != p.start_floor:
     #                 break
     #         self.passenger_list.append(p)
+
+
 
     def update(self):
         # todo : play_time이 마지막 체크시점보다 더 지났을 경우라는건가?

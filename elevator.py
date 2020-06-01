@@ -39,12 +39,13 @@ class ElevatorEnv:
     bd:building
     heuristic: bool = True
 
-    def __init__(self, size_x: int, size_y: int):
+    def __init__(self, size_x: int, size_y: int, heuristic:bool = True):
         pg.init()
         self.screen = pg.display.set_mode([size_x, size_y], pg.DOUBLEBUF)
         self.display = pg.display.set_caption("elevator")
         self.clock = pg.time.Clock()
         self.bd = building.Building(self, self.screen)
+        self.heuristic = heuristic
 
     def step(self):
         for event in pg.event.get():
@@ -64,7 +65,10 @@ class ElevatorEnv:
                 sys.exit()
     
         self.clock.tick(100)
-        self.bd.decision_actions(actions)
+
+        if not self.heuristic: 
+            self.bd.decision_actions(actions)
+
         states,rewards,dones = self.bd.update_step()
         self.bd.render()
         pg.display.update()
