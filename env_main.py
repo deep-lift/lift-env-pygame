@@ -3,7 +3,7 @@ from argslist import *
 import random
 
 def main():
-    env = elevator.ElevatorEnv(SCREEN_WIDTH,SCREEN_HEIGHT,True)
+    env = elevator.ElevatorEnv(SCREEN_WIDTH,SCREEN_HEIGHT,False)
 
     stats,rewards,dones = env.reset()
 

@@ -137,20 +137,21 @@ class Lift(object):
 
         f = self._building.floors[action]
         
-       
-        if action == MoveState.STOP:
+        action_state = MoveState(action)
+        if action_state == MoveState.STOP:
             if self.act_fsm.curr_state == State.Ready:
                 while len(f.passengers)>0:
-                    dir = random.uniform(0,2)
-                if f.is_call(dir):
-                    self.act_fsm(Event.DoorOpenRequest)
-                    self.set_direction(dir)
-                    return
+                    dir = random.randrange(0,3)
+
+                    if f.is_call(MoveState(dir)):
+                        self.act_fsm.transition(Event.DoorOpenRequest)
+                        self.set_direction(action_state)
+                        return
 
             self.act_fsm.transition(Event.DecelerateStart)
             return
 
-        elif action == MoveState.DOWN: #// 현재 이동중 방향과 다르게 왔을 경우..
+        elif action_state == MoveState.DOWN: #// 현재 이동중 방향과 다르게 왔을 경우..
             if floor == 0:
                 return
 
@@ -163,12 +164,12 @@ class Lift(object):
                     return
 
                 elif self.curr_speed >0:
-                    self.act_fsm.transition(Event.DecelerateStart)
+                    #self.act_fsm.transition(Event.DecelerateStart)
                     return
 
 
-            self.set_direction(action)
-            self.act_fsm(Event.Call)
+            self.set_direction(action_state)
+            self.act_fsm.transition(Event.Call)
         else:
 
             if floor == self._building._env.floors -1:
@@ -183,10 +184,10 @@ class Lift(object):
                 if len(self.passengers)>0:
                     return
                 elif self.curr_speed >0:
-                    self.act_fsm.transition(Event.DecelerateStart)
+                    #self.act_fsm.transition(Event.DecelerateStart)
                     return
 
-            self.set_direction(action)
+            self.set_direction(action_state)
             self.act_fsm.transition(Event.Call)
 
        
@@ -438,8 +439,7 @@ class Lift(object):
         idx = 0
         stayfloor:int = self.curr_floor
 
-        
-
+       
         if self.move == MoveState.UP:
             stayfloor =  round(self.curr_floor)#Mathf.RoundToInt(currentFloor)
         elif  self.move == MoveState.STOP:
