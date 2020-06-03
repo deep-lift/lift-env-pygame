@@ -1,7 +1,7 @@
 import random
 import math
 import pygame as pg
-
+import numpy as np
 from elevator import *
 from fsm import *
 from render import *
@@ -17,7 +17,6 @@ class Lift(object):
         self.scr = scr
         self.car_no = no
         self._building = bd
-
         self.max_speed = bd._env.speed
         self.curr_speed = 0
         self.height = bd._env.height
@@ -25,8 +24,7 @@ class Lift(object):
         self.pos = Vector3(0, 0, 0)
         self.passengers = []
         self.move = MoveState.STOP
-       
-       
+        self.curr_floor = 0
 
         self.act_fsm.add_transition(State.Ready, Event.Call, State.Accelate)
         self.act_fsm.add_transition(State.Ready, Event.DoorOpenRequest, State.DoorOpening)
@@ -38,11 +36,12 @@ class Lift(object):
         self.act_fsm.add_transition(State.NormalMove, Event.DecelerateStart, State.Decelerate)
         self.act_fsm.add_transition(State.NormalMove, Event.Arrived, State.MoveStop);
 
-
         self.act_fsm.add_transition(State.Decelerate, Event.Arrived, State.MoveStop)
+
         self.act_fsm.add_transition(State.MoveStop, Event.DoorOpenRequest, State.DoorOpening)
         self.act_fsm.add_transition(State.MoveStop, Event.EmptyPassenger, State.Ready)
         self.act_fsm.add_transition(State.MoveStop, Event.DoorCloseEnd, State.Accelate)
+
         self.act_fsm.add_transition(State.DoorOpening, Event.DoorOpenEnd, State.DoorOpened)
         self.act_fsm.add_transition(State.DoorOpened, Event.DoorCloseStart, State.DoorClosing)
         self.act_fsm.add_transition(State.DoorClosing, Event.DoorCloseEnd, State.Accelate)
@@ -62,78 +61,76 @@ class Lift(object):
 
         self.state = observation()
 
-
         self.verticals = []
 
-    def reset(self,start_floor: int):
+    def reset(self, start_floor: int):
         self.curr_floor = start_floor
         self.pos.x = LIFT_WIDTH*(self.car_no+1)
         self.pos.y = self.height * (start_floor + 1)
         self.move = MoveState.STOP
         self.passengers.clear()
-        self.reqState = State.End
-        self.reqfloor = -1
-        self.reqTime  = 0
+
+        self.req_state = State.End
+        self.req_floor = -1
+        self.req_time  = 0
         self.reward =0
         self.req_decision = True
         self.cool_time = 0
-        self.reqdecision_floor = -1
-        self.next_transition_time =0
+        self.req_decision_floor = -1
+        self.next_transition_time = 0
         self.next_event = State.End
         self.req_floor = {MoveState.STOP:-1, MoveState.DOWN:-1, MoveState.UP:-1}
         self.action = MoveState.STOP
         self.done = False
         self.state.reset()
 
-        
-
         for i in range(self._building._env.floors):
-
-            if i>=len(self.verticals):
+            if i >= len(self.verticals):
                 v = VerticalLine(self.scr, self._building._env, i, self.pos.x)
                 self.verticals.append(v)
             else:
                 self.verticals[i].reset()
 
+    def make_state(self, state: observation):
 
-    def make_state(self,state:observation):
-        state.add(self._building.rest_passenger)
+        ######################################################################################
+        # Global Observation
+        state.add(self._building.rest_passenger)  # 남은 승객수
 
         for f in self._building.floors:
-            state.add(len(f.passengers))
+            state.add(len(f.passengers))            # 각층 대기 승객 수
+            state.add(f.is_call(MoveState.DOWN))    # 각층 DOWN 버튼 눌린 여부
+            state.add(f.is_call(MoveState.UP))      # 각층 UP 버튼 눌린 여부
 
-            state.add(f.is_call(MoveState.DOWN))
-            state.add(f.is_call(MoveState.UP))
+        floor, next_floor = self.get_nextfloor()    # 엘베의 이동방향을 감안해서 현재층과 다음층
+        ######################################################################################
 
-
-        floor,next_floor = self.get_nextfloor()
-        state.add(floor)
-        state.add(next_floor)
-        state.add(self.move.value)
-        state.add(self.act_fsm.curr_state)
-        state.add(len(self.passengers))
+        ######################################################################################
+        # Local Observation
+        state.add(floor)                            # 해당 리프트 현재 층수
+        state.add(next_floor)                       # 해당 리프트 다음 층수
+        state.add(self.move.value)                  # 해당 리프트의 이동 방향
+        state.add(self.act_fsm.curr_state)          # 해당 리프트의 FSM 상태
+        state.add(len(self.passengers))             # 해당 리프트의 탑승 승객 수
 
         for v in self.verticals:
-            state.add(v.on)
+            state.add(v.on)                         # 엘레베이터 버튼 on 여부
+        ######################################################################################
 
     def collect_obs(self):
-
+        self.state.reset()
         for lift in self._building.lifts:
             lift.make_state(self.state)
-
         return self.state.obsvector
-        
-  
-    def decision_action(self,action:int):
 
-        if self.req_decision != True:
+    def decision_action(self, action):
+        if not self.req_decision:
             return
-
 
         self.reward = 0
         self.req_decision = False
         
-        floor,next_floor = self.get_nextfloor()
+        floor, next_floor = self.get_nextfloor()
 
         f = self._building.floors[action]
         
@@ -141,7 +138,7 @@ class Lift(object):
         if action_state == MoveState.STOP:
             if self.act_fsm.curr_state == State.Ready:
                 while len(f.passengers)>0:
-                    dir = random.randrange(0,3)
+                    dir = random.randrange(0, 3)
 
                     if f.is_call(MoveState(dir)):
                         self.act_fsm.transition(Event.DoorOpenRequest)
@@ -151,7 +148,7 @@ class Lift(object):
             self.act_fsm.transition(Event.DecelerateStart)
             return
 
-        elif action_state == MoveState.DOWN: #// 현재 이동중 방향과 다르게 왔을 경우..
+        elif action_state == MoveState.DOWN:  # 현재 이동중 방향과 다르게 왔을 경우..
             if floor == 0:
                 return
 
@@ -164,9 +161,7 @@ class Lift(object):
                     return
 
                 elif self.curr_speed >0:
-                    #self.act_fsm.transition(Event.DecelerateStart)
                     return
-
 
             self.set_direction(action_state)
             self.act_fsm.transition(Event.Call)
@@ -189,8 +184,6 @@ class Lift(object):
 
             self.set_direction(action_state)
             self.act_fsm.transition(Event.Call)
-
-       
 
     def is_enterable(self):
         return True
@@ -225,9 +218,6 @@ class Lift(object):
         if int(floor) == next_floor:
             return
 
-
-
-
         if self._building._env.heuristic:
             if not self.verticals[int(next_floor)].on and not self._building.floors[next_floor].is_call(self.move):
                 self.request_action(next_floor)
@@ -253,22 +243,11 @@ class Lift(object):
 
             return
 
-
-       #if next_floor == 0:
-       #    self.move =MoveState.UP
-       #elif next_floor == self._building._env.floors-1:
-       #    self.move =MoveState.DOWN
-
-
-        if self.reqdecision_floor == next_floor:
+        if self.req_decision_floor == next_floor:
             return;
 
         if self._building.floors[next_floor].is_call(self.move):
             self.request_action(next_floor)
-
-       
-
-
 
     def update_pos(self):
         if self.cool_time > self._building.play_time:
@@ -327,25 +306,21 @@ class Lift(object):
                 if len(self.passengers) == 0 and not self._building.is_call():
                     self.act_fsm.transition(Event.DecelerateStart)
                     return
-
             return
 
         if self.act_fsm.curr_state == State.Ready:
-            if self._building.play_time - self.reqTime < 0.5:
+            if self._building.play_time - self.req_time < 0.5:
                 return
        
-
-        if self.reqState == self.act_fsm.curr_state and self.reqfloor == floor:
-                return
+        if self.req_state == self.act_fsm.curr_state and self.req_floor == floor:
+            return
 
         self.request_decision(floor)
-        
 
-    def request_decision(self,floor):
-        # todo : 여기 맞는건가?!!
-        self.reqState = self.act_fsm.get_current_state()
-        self.reqdecision_floor = floor
-        self.reqTime = self._building.play_time
+    def request_decision(self, floor):
+        self.req_state = self.act_fsm.get_current_state()
+        self.req_decision_floor = floor
+        self.req_time = self._building.play_time
         self.req_decision = True
 
 
@@ -357,7 +332,6 @@ class Lift(object):
         #RequstAction((int)GetFloor())
 
     def act_accelate(self):  # 정상속도로 되기 위해서 가속상태..
-
 
         #if self.curr_floor ==0 and self.move != MoveState.UP:
         #    self.move = MoveState.UP
@@ -428,8 +402,8 @@ class Lift(object):
 
         self.set_floorbutton(floor, False)
 
-        if self.reqdecision_floor == floor:
-            self.reqdecision_floor = -1
+        if self.req_decision_floor == floor:
+            self.req_decision_floor = -1
 
     def act_dooropening(self):
         self.set_transition_delay(Event.DoorOpenEnd, self._building._env.open)
@@ -439,13 +413,12 @@ class Lift(object):
         idx = 0
         stayfloor:int = self.curr_floor
 
-       
         if self.move == MoveState.UP:
-            stayfloor =  round(self.curr_floor)#Mathf.RoundToInt(currentFloor)
+            stayfloor = round(self.curr_floor)#Mathf.RoundToInt(currentFloor)
         elif  self.move == MoveState.STOP:
-            stayfloor = self.curr_floor
+            stayfloor = round(self.curr_floor)
         else:
-            stayfloor =  round(self.curr_floor)
+            stayfloor = round(self.curr_floor)
 
         while idx < len(self.passengers):
             p: Passenger = self.passengers[idx]
@@ -463,7 +436,7 @@ class Lift(object):
         self.set_transition_delay(Event.DoorCloseStart, boardingDelay)
         self.take_lift(stayfloor)
 
-    def take_lift(self,floor:int):
+    def take_lift(self, floor:int):
         f = self._building.floors[floor]
         idx = 0
         while idx <len(f.passengers):
@@ -497,7 +470,7 @@ class Lift(object):
             floor = math.ceil(self.curr_floor)
             nextfloor = round(self.curr_floor)
 
-        return int(floor),int(nextfloor)
+        return int(floor), int(nextfloor)
 
     def is_takeable(self):
         if self.act_fsm.curr_state != State.DoorOpened or len(self.passengers) >= self._building._env.capacity:
@@ -532,7 +505,7 @@ class Lift(object):
         return True
 
     def get_floor_dist(self, floor):
-        dist =  abs(floor - self.curr_floor)
+        dist = abs(floor - self.curr_floor)
         if self.move == MoveState.STOP:
             return abs(dist)
 
@@ -585,8 +558,8 @@ class Lift(object):
 
 class Building(object):
 
-    def __init__(self, env_: object, scr):
-        self._env = env_
+    def __init__(self, env: object, scr):
+        self._env = env
         self.scr = scr
 
         self.lifts = []
@@ -599,46 +572,33 @@ class Building(object):
         self.dest_passenger: int = 0
         self.add_passenger: int = 0
 
-        self.simulation_time: float = 0
         self.start_time: float = 0
         self.success_count: int = 0
         self.fail_count: int = 0
         self._env: object
         self.step: int = 0
 
-        self.call_reqreserve= [[]]
+        self.call_reqreserve = [[]]
         self.play_time: float = 0
         self.episode = 0
         self.is_done = False
-
-        #for i in range(0, env_.elevator_count):
-        #    c = Lift(self.scr, i, self)
-        #    self.lifts.append(c)
-
         self.rest_passenger = self._env.passenger
         self.dest_passenger = 0
-        self.simulation_time = 0
         self.add_passenger = 0
         self.play_time = 0
         self.episode = self.episode + 1
 
         SCREEN_WIDTH, SCREEN_HEIGHT = self.scr.get_size()
-        METERPERPIXEL = SCREEN_HEIGHT / (self._env.floors + 1) / self._env.height
-        LIFT_WIDTH = (SCREEN_WIDTH / METERPERPIXEL / (self._env.elevator_count + 1))
+        METER_PER_PIXELPIXEL = SCREEN_HEIGHT / (self._env.floors + 1) / self._env.height
+        LIFT_WIDTH = (SCREEN_WIDTH / METER_PER_PIXELPIXEL / (self._env.elevator_count + 1))
 
-        dist = SCREEN_WIDTH / (self._env.elevator_count + 1)
-        rest = self._env.elevator_count % 2
-        mok = self._env.elevator_count / 2
         self.reset()
-
-    
 
     def reset(self):
         for i in range(self._env.elevator_count):
             if i >= len(self.lifts):
                 car = Lift(self.scr, i, self)
                 self.lifts.append(car)
-
             self.lifts[i].reset(random.randint(0, 3))
 
         for i in range(self._env.floors):
@@ -649,9 +609,9 @@ class Building(object):
                 self.floors[i].reset()
 
             if len(self.call_reqreserve) <= i:
-                self.call_reqreserve.append([-1,-1])
+                self.call_reqreserve.append([-1, -1])
             else:
-                self.call_reqreserve[i] = [-1,-1]
+                self.call_reqreserve[i] = [-1, -1]
 
         self.step = 0
         self.is_done = False
@@ -666,38 +626,36 @@ class Building(object):
         return obs_list;
 
     def env_info(self):
-   
-        stats = []
+        observations = []
         rewards = []
         dones = []
-        for lift in self.lifts:
 
+        for lift in self.lifts:
             if lift.req_decision or self.is_done:
-                lift.collect_obs()
-                stats.append(lift.state.obsvector)
+                observations.append(lift.collect_obs())
                 rewards.append(lift.reward)
                 dones.append(self.is_done)
             else:
-                stats.append([])
+                observations.append([])
                 rewards.append(0)
                 dones.append(False)
 
-
-        return stats,rewards,dones
-
-
+        return np.asarray(observations), np.asarray(rewards), np.asarray(dones)
 
     def simulation_passenger(self):
-        # 해당 step에서 지금 현재 운반중인 승객들이 총 승객의 수의 30% 이상 출연해 있는 상태면 더 만들진 말자
+
+        # 해당 step에서 현재 운반중인 승객들이 총 승객의 수의 30% 이상 출연해 있는 상태면 더 만들진 말자
         if self.curr_passenger > self._env.passenger * 0.3:
             return
+
         new_passenger = random.randint(0, self.rest_passenger)
 
-        # 1층에서 승객들이 나오게 변경
+        # 난이도 조절 #1 : 1층에서 승객들이 나오게 변경
         floor_passenger = [0 for i in range(len(self.floors))]
         floor_passenger[0] = random.randint(0, (int)(new_passenger * 0.8))
         rest = new_passenger - floor_passenger[0]
 
+        # 여전히 랜덤한 요소가 많음. 반영이 안된건가?
         while rest > 0:
             floor = random.randint(0, len(self.floors)-1)
             passenger = random.randint(1, rest)
@@ -705,14 +663,10 @@ class Building(object):
             floor_passenger[floor] = passenger
 
         for i in range(len(self.floors)):
-
             if floor_passenger[i] > 0:
-                # todo : 여기 뭐지?
                 dest_list = self.floors[i].add_passenger(floor_passenger[i])
                 self.add_passenger += floor_passenger[i]
                 self.rest_passenger -= floor_passenger[i]
-
-        self.simulation_time += 5
 
     def take_passenger(self):
         for floor in self.floors:
@@ -723,7 +677,6 @@ class Building(object):
         self.dest_passenger += 1
 
     def update_lift(self):
-
         for f in self.floors:
             f.update()
 
@@ -734,8 +687,6 @@ class Building(object):
         if self._env.heuristic:
             self.search_nearest_car(floor, direction)
        
-
-
     def search_nearest_car(self, floor:int, direction: MoveState): # script code
         min = 1000000.0
         dist = 0
@@ -765,12 +716,11 @@ class Building(object):
         return False
 
     def update_step(self):
-        self.play_time += self._env.fixedTime # todo : 단위가 궁금!
+        self.play_time += self._env.fixedTime  # todo : 단위가 궁금!
 
-        if self.step >= self._env.maxstep or self.is_success():
+        if self.step >= self._env.max_step or self.is_success():
             self.is_done = True
             
-     
         self.simulation_passenger()
         self.update_lift()
         self.step += 1
@@ -778,7 +728,6 @@ class Building(object):
         if self._env.heuristic:
             return [],[],[]
 
-     
         return self.env_info()
 
 
@@ -796,28 +745,22 @@ class Building(object):
                 return False
 
         return True
-     
 
-
-    def decision_actions(self,actions:list):
-        no:int =0
+    def decision_actions(self, actions):
+        no = 0
         for action in actions:
             self.lifts[no].decision_action(action)
-            no = no+1
+            no = no + 1
      
-
     def render(self):
-
-        self.scr.fill(BLACK)
+        self.scr.fill(WHITE)
 
         for floor in self.floors:
             floor.render()
-
         for lift in self.lifts:
             lift.render()
-
-        text = "Deep Lift Ep:" + str(self.episode) + " Success:" + str(self.success_count) + " Step:" + str(self.step)
-        DrawText(self.scr, 0, 0, text, GREEN)
+        text = "Deep Lift Episode :" + str(self.episode) + ", Success :" + str(self.success_count) + ", Step :" + str(self.step)
+        DrawText(self.scr, 0, 0, text, BLACK)
 
 
 class Floor:
@@ -827,8 +770,7 @@ class Floor:
         self._building = b
         self.passengers = []
 
-
-    def __init__(self, scr, b: Building, no: int):
+    def __init__(self, scr, b: Building, no):
         self.scr = scr
         self.floor_no = no
         self._building = b
@@ -840,7 +782,6 @@ class Floor:
     def reset(self):
         self.up_call: bool = False
         self.down_call: bool = False
-       
         self.passengers.clear()
         self.checkTime = self._building.play_time
 
@@ -852,20 +793,6 @@ class Floor:
             return self.down_call
         else:
             return False
-
-    # todo : 사용 안하는것 같음??
-    # def set_passengers(self, count: int):
-    #     self.num_passenger = count
-    #
-    #     for i in range(count):
-    #         p: Passenger = Passenger(self.floor_no, self.floor_no)
-    #         while True:
-    #             p.dest_floor = random.randint(0, 10)
-    #             if p.dest_floor != p.start_floor:
-    #                 break
-    #         self.passenger_list.append(p)
-
-
 
     def update(self):
         # todo : play_time이 마지막 체크시점보다 더 지났을 경우라는건가?
@@ -880,8 +807,7 @@ class Floor:
                 self.up_call = True
             else:
                 self.down_call = True
-            if self.down_call and self.up_call:
-                break
+
         self.set_button(MoveState.DOWN, self.down_call)
         self.set_button(MoveState.UP, self.up_call)
         self.checkTime = self._building.play_time
@@ -913,7 +839,7 @@ class Floor:
 
     def render(self):
         x, y = ToScreenPos(self.pos)
-        pg.draw.line(self.scr, WHITE, [x, y], [SCREEN_WIDTH, y], 3)
+        pg.draw.line(self.scr, BLACK, [x, y], [SCREEN_WIDTH, y], 3)
 
         DrawText(self.scr, x + METER_PER_PIXEL, y - METER_PER_PIXEL, str(self.floor_no), BLUE)
         DrawText(self.scr, x + METER_PER_PIXEL, y + 3, str(len(self.passengers)), RED)
@@ -922,7 +848,7 @@ class Floor:
             DrawText(self.scr, x + METER_PER_PIXEL * 3, y - METER_PER_PIXEL, '^', BLUE)
 
         if self.down_call:
-            DrawText(self.scr, x + METER_PER_PIXEL * 3, y + 3, 'V', RED)
+            DrawText(self.scr, x + METER_PER_PIXEL * 3, y + 3, 'v', RED)
 
 
 class VerticalLine(object):
@@ -931,6 +857,7 @@ class VerticalLine(object):
         self.env = env
         self.floor = floor
         self.pos = Vector3(x, (floor + 1) * self.env.height, 0)
+        self.on = False
         self.reset()
 
     def reset(self):
@@ -948,4 +875,4 @@ class VerticalLine(object):
                      )
 
         if self.on:
-            DrawText(self.scr, x + METER_PER_PIXEL * 3, y + 3, 'O', RED)
+            DrawText(self.scr, x + METER_PER_PIXEL * 3, y + 3, 'o', RED)

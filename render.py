@@ -44,10 +44,6 @@ def ToScreenPos(pos):
     y: int = SCREEN_HEIGHT-(pos.y * METER_PER_PIXEL)
     return x, y
 
-# def ToGamePos(x,y):
-#     return Vector3(x / METER_PER_PIXEL, (SCREEN_HEIGHT - y) / METER_PER_PIXEL, 0)
-
-
 BLACK = (0,  0,  0)
 WHITE = (255, 255, 255)
 BLUE = (0,  0, 255)
@@ -55,10 +51,4 @@ GREEN = (0, 255,  0)
 RED = (255,  0,  0)
 GRAY = (128, 128, 128)
 
-
-class passenger_spawn(object):
-    def __init__(self):
-        self.step =0
-        self.floor =-1
-        destfloor = []
 
