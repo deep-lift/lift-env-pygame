@@ -438,7 +438,7 @@ class Lift(object):
             p: Passenger = self.passengers[idx]
             if p.dest_floor == stayfloor:
                 del self.passengers[idx]
-                self.verticals[int(stayfloor)].on = False
+                self.verticals[int(stayfloor)].set(False)
                 boardingDelay += random.uniform(0.6, 1.0)
 
                 refTime = abs(
@@ -499,26 +499,27 @@ class Lift(object):
         if self.is_takeable() == False:
             return False
 
-        self.verticals[p.dest_floor].on = True
-
         if len(self.passengers) ==0:
             self.passengers.append(p)
             self.set_transition_delay(Event.DoorCloseStart, random.uniform(0.6, 1.0),True)
+            self.verticals[p.dest_floor].set(True)
             return True
 
         if self.move == MoveState.UP and p.dest_floor>self.curr_floor:
             self.passengers.append(p)
             self.set_transition_delay(Event.DoorCloseStart, random.uniform(0.6, 1.0),True)
+            self.verticals[p.dest_floor].set(True)
             #SetFloorButton(p.destFloor, True)
         elif self.move  == MoveState.DOWN and p.dest_floor < self.curr_floor:
             self.passengers.append(p)
             self.set_transition_delay(Event.DoorCloseStart, random.uniform(0.6, 1.0),True)
+            self.verticals[p.dest_floor].set(True)
             #SetFloorButton(p.destFloor, True)
             #AddReward(1f / (Time.fixedTime - p.timeWaiting))
             #p.timeWaiting = Time.fixedTime
         else:
-            self.verticals[p.dest_floor].on = False
             return False
+
         return True
 
     def get_floor_dist(self, floor):
