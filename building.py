@@ -69,7 +69,6 @@ class Lift(object):
         self.pos.y = self.height * (start_floor + 1)
         self.move = MoveState.STOP
         self.passengers.clear()
-
         self.req_state = State.End
         self.req_floor = -1
         self.req_time  = 0
@@ -430,6 +429,9 @@ class Lift(object):
                 refTime = abs(
                     (p.start_floor - p.dest_floor) * self._building._env.height / self._building._env.speed / 2
                 )
+
+                self.reward = self.reward + 1
+
             else:
                 idx += 1
 
@@ -632,6 +634,10 @@ class Building(object):
         rewards = []
         dones = []
 
+        if self.step >= self._env.max_step and self.rest_passenger > 0:
+            for lift in self.lifts:
+                lift.reward = -self.rest_passenger / N_AGENTS
+
         for lift in self.lifts:
             if lift.req_decision or self.is_done:
                 observations.append(lift.collect_obs())
@@ -742,6 +748,10 @@ class Building(object):
         for floor in self.floors:
             if len(floor.passengers) > 0:
                 return False
+
+        for lift in self.lifts:
+            lift.reward = lift.reward + 10
+
         return True
 
     def decision_actions(self, actions):
