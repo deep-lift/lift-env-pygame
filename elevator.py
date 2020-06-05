@@ -80,7 +80,8 @@ class ElevatorEnv:
             for a in range(N_AGENTS):
                 self.observations[a] = all_observation[46*a+31:46*a+46]
 
-        self.render()
+        if RENDER:
+            self.render()
 
         return observations, rewards, dones
 
