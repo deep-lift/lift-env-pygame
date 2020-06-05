@@ -716,14 +716,15 @@ class Building(object):
         return False
 
     def update_step(self):
+
         self.play_time += self._env.fixedTime  # todo : 단위가 궁금!
 
-        if self.step >= self._env.max_step or self.is_success():
-            self.is_done = True
-            
         self.simulation_passenger()
         self.update_lift()
         self.step += 1
+
+        if self.step >= self._env.max_step or self.is_success():
+            self.is_done = True
 
         if self._env.heuristic:
             return [],[],[]
@@ -733,7 +734,7 @@ class Building(object):
 
     def is_success(self):
          
-        if self.rest_passenger >0:
+        if self.rest_passenger > 0:
             return False
 
         for lift in self.lifts:
@@ -754,7 +755,6 @@ class Building(object):
      
     def render(self):
         self.scr.fill(WHITE)
-
         for floor in self.floors:
             floor.render()
         for lift in self.lifts:

@@ -52,7 +52,7 @@ class ElevatorEnv:
         self.bd = building.Building(self, self.screen)
         self.heuristic = heuristic
 
-    def step(self, actions:list):
+    def step(self, actions: list):
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 sys.exit()
@@ -65,24 +65,28 @@ class ElevatorEnv:
         observations, rewards, dones = self.bd.update_step()
 
         requested_agents = [False] * N_AGENTS
-
         all_observation = None
+
         for i, o in enumerate(observations):
             if len(o) != 0:
                 requested_agents[i] = True
                 if all_observation is None:
                     all_observation = o
 
-        # todo : observations에서 observations(쉐어정보), states(개별정보)로 분리
+        # todo : observations에서 observations(쉐어정보), states(개별정보)로 분리하여 저장
         if all_observation is not None:
             self.states = all_observation[0:31]
 
             for a in range(N_AGENTS):
                 self.observations[a] = all_observation[46*a+31:46*a+46]
 
+        self.render()
+
+        return observations, rewards, dones
+
+    def render(self):
         self.bd.render()
         pg.display.update()
-        return observations, rewards, dones
 
     def step_split(self, actions:list):
         observations, rewards, dones = self.step(actions)
