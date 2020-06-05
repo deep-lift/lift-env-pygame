@@ -616,6 +616,8 @@ class Building(object):
         self.step = 0
         self.is_done = False
         self.play_time = 0
+        self.rest_passenger = self._env.passenger
+
 
     def get_state(self):
         obs_list = []
@@ -731,20 +733,15 @@ class Building(object):
 
         return self.env_info()
 
-
     def is_success(self):
-         
         if self.rest_passenger > 0:
             return False
-
         for lift in self.lifts:
-            if len(lift.passengers) >0:
+            if len(lift.passengers) > 0:
                 return False
-
         for floor in self.floors:
-            if len(floor.passengers) >0:
+            if len(floor.passengers) > 0:
                 return False
-
         return True
 
     def decision_actions(self, actions):
