@@ -35,7 +35,7 @@ class ElevatorEnv:
     capacity: int = 15
     action_to_floor: int = 0
     fixedTime: float = FIXED_TIME
-    max_step: int = 5000
+    max_step: int = 50000
     bd: building
     heuristic: bool = True
 

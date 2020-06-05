@@ -76,4 +76,4 @@ class FSM:
         if self.curr_state not in self.state_dic:
             raise ValueError('Current FSM has a problem for setting current state.')
             return State.End
-        return self.state_dic[self.curr_state]
+        return self.curr_state
