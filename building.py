@@ -251,6 +251,8 @@ class Lift(object):
             return
 
       
+
+
       
 
         #if self._building.floors[next_floor].is_call(dir):
@@ -318,12 +320,17 @@ class Lift(object):
                     return
             return
 
+       
+         
+
         if self.act_fsm.curr_state == State.Ready:
             if self._building.play_time - self.req_time < 0.5:
                 return
        
         elif self.req_decision_floor == floor:
                 return
+        else:
+             self.req_decision_floor = -1
 
         self.request_decision(floor)
 
@@ -411,9 +418,6 @@ class Lift(object):
             self.req_floor[self.move] = -1
 
         self.set_floorbutton(floor, False)
-
-        if self.req_decision_floor == floor:
-            self.req_decision_floor = -1
 
     def act_dooropening(self):
         self.set_transition_delay(Event.DoorOpenEnd, self._building._env.open)
