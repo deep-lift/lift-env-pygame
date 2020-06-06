@@ -24,7 +24,7 @@ from render import *
 class ElevatorEnv:
     elevator_count: int = 4
     floors: int = 10
-    passenger: int = 100
+    passenger: int = 20
     height: float = 3.5
     speed: float = 3
     decelerate: float = 1
@@ -35,7 +35,7 @@ class ElevatorEnv:
     capacity: int = 15
     action_to_floor: int = 0
     fixedTime: float = FIXED_TIME
-    max_step: int = 50000
+    max_step: int = 2000
     bd: building
     heuristic: bool = True
 
@@ -83,15 +83,15 @@ class ElevatorEnv:
         if RENDER:
             self.render()
 
-        return observations, rewards, dones
+        return observations, rewards, dones, requested_agents
 
     def render(self):
         self.bd.render()
         pg.display.update()
 
     def step_split(self, actions:list):
-        observations, rewards, dones = self.step(actions)
-        return rewards, dones, []
+        observations, rewards, dones, requested_agents = self.step(actions)
+        return rewards, dones, requested_agents
 
     def get_obs(self):
         return self.observations
