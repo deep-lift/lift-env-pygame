@@ -72,7 +72,7 @@ class Lift(object):
         self.req_state = State.End
         self.req_floor = -1
         self.req_time  = 0
-        self.reward =0
+        self.reward = 0
         self.req_decision = True
         self.cool_time = 0
         self.req_decision_floor = -1
@@ -440,10 +440,7 @@ class Lift(object):
                 del self.passengers[idx]
                 self.verticals[int(stayfloor)].set(False)
                 boardingDelay += random.uniform(0.6, 1.0)
-
-                refTime = abs(
-                    (p.start_floor - p.dest_floor) * self._building._env.height / self._building._env.speed / 2
-                )
+                refTime = abs((p.start_floor - p.dest_floor) * self._building._env.height / self._building._env.speed / 2)
 
                 self.reward = self.reward + 1
 
@@ -635,6 +632,7 @@ class Building(object):
         self.is_done = False
         self.play_time = 0
         self.rest_passenger = self._env.passenger
+        self.episode = self.episode + 1
 
 
     def get_state(self):
@@ -650,9 +648,9 @@ class Building(object):
         rewards = []
         dones = []
 
-        if self.step >= self._env.max_step and self.rest_passenger > 0:
+        if self.step >= self._env.max_step and self.dest_passenger - self._env.passenger < 0:
             for lift in self.lifts:
-                lift.reward = -self.rest_passenger / N_AGENTS
+                lift.reward = (self.dest_passenger - self._env.passenger) / N_AGENTS
 
         for lift in self.lifts:
             if lift.req_decision or self.is_done:

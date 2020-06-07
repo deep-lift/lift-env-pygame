@@ -35,12 +35,12 @@ class ElevatorEnv:
     capacity: int = 15
     action_to_floor: int = 0
     fixedTime: float = FIXED_TIME
-    max_step: int = 2000
+    max_step: int = N_MAX_STEPS
     bd: building
     heuristic: bool = True
 
     observations = np.zeros((N_AGENTS, N_OBSERVATION))
-    states = np.zeros((N_AGENTS, N_STATE))
+    states = np.zeros(N_STATE)
     rewards = np.asarray((N_AGENTS,))
     dones = np.asarray((N_AGENTS,))
 
