@@ -38,10 +38,10 @@ def main():
         if any(requested_agents):
             observations = np.asarray(observation).reshape(N_AGENTS, (N_OBSERVATION+N_STATE))
             actions = select_actions(observations, requested_agents)
-            observations, rewards, dones = env.step(actions)
+            observations, rewards, dones,_ = env.step(actions)
             done = all(dones)
         else:
-            observations, rewards, dones = env.step([])
+            observations, rewards, dones,_ = env.step([])
             print('{} step : no request from agents'.format(step))
 
     print("Deep Lift Game is Ended..")

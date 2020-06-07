@@ -444,6 +444,7 @@ class Lift(object):
                 refTime = abs((p.start_floor - p.dest_floor) * self._building._env.height / self._building._env.speed / 2)
 
                 self.reward = self.reward + 1
+                self._building.dest_passenger+=1;
 
             else:
                 idx += 1
@@ -781,7 +782,7 @@ class Building(object):
             floor.render()
         for lift in self.lifts:
             lift.render()
-        text = "Deep Lift Episode :" + str(self.episode) + ", Success :" + str(self.success_count) + ", Step :" + str(self.step)
+        text = "Deep Lift Episode :" + str(self.episode) +" Rest:" +str(self._env.passenger-self.dest_passenger)+", Success :" + str(self.success_count) + ", Step :" + str(self.step)
         DrawText(self.scr, 0, 0, text, BLACK)
 
 
