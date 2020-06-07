@@ -603,7 +603,6 @@ class Building(object):
         self.dest_passenger = 0
         self.add_passenger = 0
         self.play_time = 0
-        self.episode = self.episode + 1
 
         SCREEN_WIDTH, SCREEN_HEIGHT = self.scr.get_size()
         METER_PER_PIXELPIXEL = SCREEN_HEIGHT / (self._env.floors + 1) / self._env.height
@@ -631,8 +630,11 @@ class Building(object):
                 self.call_reqreserve[i] = [-1, -1]
 
         self.step = 0
-        self.is_done = False
         self.play_time = 0
+        self.is_done = False
+        self.dest_passenger = 0
+        self.add_passenger = 0
+       
         self.rest_passenger = self._env.passenger
         self.episode = self.episode + 1
 
@@ -767,6 +769,8 @@ class Building(object):
 
         for lift in self.lifts:
             lift.reward = lift.reward + 10
+
+        self.success_count+=1
 
         return True
 

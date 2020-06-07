@@ -24,7 +24,7 @@ from render import *
 class ElevatorEnv:
     elevator_count: int = 4
     floors: int = 10
-    passenger: int = 20
+    passenger: int = 100
     height: float = 3.5
     speed: float = 3
     decelerate: float = 1
