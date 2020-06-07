@@ -82,6 +82,7 @@ class Lift(object):
         self.action = MoveState.STOP
         self.done = False
         self.state.reset()
+        self.act_fsm.curr_state = State.Ready
 
         for i in range(self._building._env.floors):
             if i >= len(self.verticals):
@@ -688,7 +689,7 @@ class Building(object):
             if floor_passenger[i] > 0:
                 dest_list = self.floors[i].add_passenger(floor_passenger[i])
                 self.add_passenger += floor_passenger[i]
-                self.rest_passenger -= floor_passenger[i]
+                passengself.rest_er -= floor_passenger[i]
 
     def take_passenger(self):
         for floor in self.floors:
