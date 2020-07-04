@@ -38,6 +38,7 @@ class ElevatorEnv:
     max_step: int = N_MAX_STEPS
     bd: building
     heuristic: bool = True
+    fixed_scenario:bool = True   #고정된 시나리오 동작 여부 플래그
 
     observations = np.zeros((N_AGENTS, N_OBSERVATION))
     states = np.zeros(N_STATE)
