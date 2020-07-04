@@ -2,22 +2,39 @@ import pygame as pg
 
 pg.init()
 
+"""
+===================== ENV =======================
+"""
+FONT = pg.font.Font('freesansbold.ttf', 16)
 SCREEN_HEIGHT: int = 800
 SCREEN_WIDTH: int = 600
-
 METER_PER_PIXEL: float = 20.779
 LIFT_WIDTH = 5.775
-
-FONT = pg.font.Font('freesansbold.ttf', 16)
 FIXED_TIME = 0.1
+GAME_SPEED = 1000000
+RENDER = True
 
-N_AGENTS = 4
+
+"""
+===================== AGENT =====================
+"""
+N_AGENTS = 2
 N_OBSERVATION = 15
 N_STATE = 31
 N_ACTION = 3
+N_MAX_STEPS = 2000
+N_HIDDEN = 100
+REPLAY_MEM = 200000
+RUN_EPISODE = 3000000
+TEST_EPISODE = 10000
 
-N_MAX_STEPS = 5000
+PRINT_INTERVAL = 10
+SAVE_INTERVAL = 1000
+START_TRAIN_EPISODE = 10
 
-GAME_SPEED = 1000000
-
-RENDER = True
+BATCH_SIZE = 128
+GAMMA = 0.999
+EPS_START = 0.9
+EPS_END = 0.05
+EPS_DECAY = 5000 * 10000
+TARGET_UPDATE = 10

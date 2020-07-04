@@ -4,6 +4,7 @@ import pygame as pg
 from argslist import *
 import numpy as np
 
+
 class MoveState(Enum):
     STOP = 0
     DOWN = 1
@@ -22,9 +23,9 @@ from render import *
 
 
 class ElevatorEnv:
-    elevator_count: int = 4
+    elevator_count: int = N_AGENTS
     floors: int = 10
-    passenger: int = 100
+    passenger: int = 50
     height: float = 3.5
     speed: float = 3
     decelerate: float = 1
