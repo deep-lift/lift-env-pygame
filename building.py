@@ -654,7 +654,8 @@ class Building(object):
 
         if self.step >= self._env.max_step and self.dest_passenger - self._env.passenger < 0:
             for lift in self.lifts:
-                lift.reward = (self.dest_passenger - self._env.passenger) / N_AGENTS
+                # print('episode end.. penalty?')
+                lift.reward += (self.dest_passenger - self._env.passenger) / N_AGENTS
 
         for lift in self.lifts:
             if lift.req_decision or self.is_done:

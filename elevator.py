@@ -25,7 +25,7 @@ from render import *
 class ElevatorEnv:
     elevator_count: int = N_AGENTS
     floors: int = 10
-    passenger: int = 50
+    passenger: int = N_PASSENGER
     height: float = 3.5
     speed: float = 3
     decelerate: float = 1
@@ -52,6 +52,7 @@ class ElevatorEnv:
         self.clock = pg.time.Clock()
         self.bd = building.Building(self, self.screen)
         self.heuristic = heuristic
+        self.total_reward = 0
 
     def step(self, actions: list):
         for event in pg.event.get():
