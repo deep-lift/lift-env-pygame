@@ -252,10 +252,6 @@ class Lift(object):
             return
 
       
-
-
-      
-
         #if self._building.floors[next_floor].is_call(dir):
         self.request_action(next_floor)
 
@@ -299,7 +295,6 @@ class Lift(object):
 
     def request_action(self, floor: int):
 
-
         if self._building._env.heuristic:
             if self.act_fsm.curr_state == State.NormalMove:
                 f = self._building.floors[floor]
@@ -321,9 +316,7 @@ class Lift(object):
                     return
             return
 
-       
-         
-
+     
         if self.act_fsm.curr_state == State.Ready:
             if self._building.play_time - self.req_time < 0.5:
                 return
@@ -723,6 +716,9 @@ class Building(object):
 
 
     def passenger_scenario_spawn(self):
+
+         if self.is_done == True:
+             return
                 
          while  self.scenario_index < len(self.passenger_scenario):
         
@@ -730,9 +726,9 @@ class Building(object):
             
                 self.floors[self.passenger_scenario[self.scenario_index].floor].add_passenger_list(self.passenger_scenario[self.scenario_index].destfloors)
                 
-                self.add_passenger += len(self.passenger_scenario[scenario_index].destfloors);
-                self.rest_passenger -= len(self.passenger_scenario[scenario_index].destfloors);
-                ++self.scenario_index;
+                self.add_passenger += len(self.passenger_scenario[self.scenario_index].destfloors);
+                self.rest_passenger -= len(self.passenger_scenario[self.scenario_index].destfloors);
+                self.scenario_index+=1;
             
             else: 
                 break;
@@ -903,7 +899,7 @@ class Floor:
 
     def add_passenger_list(self,destlist:list):
         for i in range(len(destlist)):
-            p = Passenger(self.floor_no, destlist[i])
+            p = Passenger(self.floor_no, destlist[i].dest_floor)
             self.passengers.append(p)
 
         self.chk_call_button()
