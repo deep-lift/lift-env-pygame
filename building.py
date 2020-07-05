@@ -573,6 +573,15 @@ class Lift(object):
             DrawText(self.scr, x, y - METER_PER_PIXEL * 1.3, 'V', RED)
 
 
+class PassengerSpawn(object):
+
+    def __init__(self,step,floor):
+        self.step = step
+        self.floor = floor
+        self.destfloors = []
+
+
+
 class Building(object):
 
     def __init__(self, env: object, scr):
@@ -586,8 +595,8 @@ class Building(object):
         self.rest_passenger: int = 0
 
         self.curr_passenger: int = 0
-        self.dest_passenger: int = 0
-        self.add_passenger: int = 0
+     
+      
 
         self.start_time: float = 0
         self.success_count: int = 0
@@ -603,6 +612,9 @@ class Building(object):
         self.dest_passenger = 0
         self.add_passenger = 0
         self.play_time = 0
+
+        self.scenario_recorde = True
+        self.passenger_scenario = []
 
         SCREEN_WIDTH, SCREEN_HEIGHT = self.scr.get_size()
         METER_PER_PIXELPIXEL = SCREEN_HEIGHT / (self._env.floors + 1) / self._env.height
@@ -634,6 +646,7 @@ class Building(object):
         self.is_done = False
         self.dest_passenger = 0
         self.add_passenger = 0
+        self.scenario_index = 0
        
         self.rest_passenger = self._env.passenger
         self.episode = self.episode + 1
@@ -671,7 +684,15 @@ class Building(object):
 
     def simulation_passenger(self):
 
-        # 해당 step에서 현재 운반중인 승객들이 총 승객의 수의 30% 이상 출연해 있는 상태면 더 만들진 말자
+        if self.scenario_recorde == True or self._env.fixed_scenario == False :
+            self.passenger_random_spawn()      
+        else: 
+            self.passenger_scenario_spawn()
+       
+
+
+    def passenger_random_spawn(self):
+
         if self.curr_passenger > self._env.passenger * 0.3:
             return
 
@@ -694,6 +715,30 @@ class Building(object):
                 dest_list = self.floors[i].add_passenger(floor_passenger[i])
                 self.add_passenger += floor_passenger[i]
                 self.rest_passenger -= floor_passenger[i]
+
+                if  self.scenario_recorde == True:
+                    spawn = PassengerSpawn(self.step,1);     
+                    spawn.destfloors = dest_list;
+                    self.passenger_scenario.append(spawn);
+
+
+
+    def passenger_scenario_spawn(self):
+                
+         while  self.scenario_index < len(self.passenger_scenario):
+        
+            if self.passenger_scenario[self.scenario_index].step <= self.step:
+            
+                self.floors[self.passenger_scenario[self.scenario_index].floor].add_passenger_list(self.passenger_scenario[self.scenario_index].destfloors)
+                
+                self.add_passenger += len(self.passenger_scenario[scenario_index].destfloors);
+                self.rest_passenger -= len(self.passenger_scenario[scenario_index].destfloors);
+                ++self.scenario_index;
+            
+            else: 
+                break;
+           
+        
 
     def take_passenger(self):
         for floor in self.floors:
@@ -752,6 +797,7 @@ class Building(object):
 
         if self.step >= self._env.max_step or self.is_success():
             self.is_done = True
+            self.scenario_recorde = False
 
         if self._env.heuristic:
             return [],[],[]
@@ -780,6 +826,9 @@ class Building(object):
         for action in actions:
             self.lifts[no].decision_action(action)
             no = no + 1
+
+   
+        
      
     def render(self):
         self.scr.fill(WHITE)
@@ -853,6 +902,15 @@ class Floor:
         self.chk_call_button()
         return dest_list
 
+    def add_passenger_list(self,destlist:list):
+        for i in range(len(destlist)):
+            p = Passenger(self.floor_no, destlist[i])
+            self.passengers.append(p)
+
+        self.chk_call_button()
+
+             
+          
     def take_passenger(self, lift: Lift):
         idx = 0
         while idx < len(self.passengers):
