@@ -571,7 +571,7 @@ class PassengerSpawn(object):
     def __init__(self,step,floor):
         self.step = step
         self.floor = floor
-        self.destfloors = []
+        self.passengers = []
 
 
 
@@ -711,7 +711,7 @@ class Building(object):
 
                 if  self.scenario_recorde == True:
                     spawn = PassengerSpawn(self.step,1);     
-                    spawn.destfloors = dest_list;
+                    spawn.passengers = dest_list;
                     self.passenger_scenario.append(spawn);
 
 
@@ -725,10 +725,10 @@ class Building(object):
         
             if self.passenger_scenario[self.scenario_index].step <= self.step:
             
-                self.floors[self.passenger_scenario[self.scenario_index].floor].add_passenger_list(self.passenger_scenario[self.scenario_index].destfloors)
+                self.floors[self.passenger_scenario[self.scenario_index].floor].add_passenger_list(self.passenger_scenario[self.scenario_index].passengers)
                 
-                self.add_passenger += len(self.passenger_scenario[self.scenario_index].destfloors);
-                self.rest_passenger -= len(self.passenger_scenario[self.scenario_index].destfloors);
+                self.add_passenger += len(self.passenger_scenario[self.scenario_index].passengers);
+                self.rest_passenger -= len(self.passenger_scenario[self.scenario_index].passengers);
                 self.scenario_index+=1;
             
             else: 
