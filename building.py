@@ -335,7 +335,6 @@ class Lift(object):
         self.req_time = self._building.play_time
         self.req_decision = True
 
-
     def act_ready(self): #아무것도 안하고 대기..
         self.move = MoveState.STOP
         self.curr_speed = 0
@@ -674,10 +673,11 @@ class Building(object):
                 # dones.append(False)
 
             # todo : 의심스러운 부분 수정 @재영님 여기 is_done부분을 아래로 뺐어요. 한번 체크부탁드려요
-            if self.is_done:
-                dones.append(self.is_done)
-            else:
-                dones.append(False)
+            dones.append(self.is_done)
+            # if self.is_done:
+            #     dones.append(self.is_done)
+            # else:
+            #     dones.append(False)
 
         return np.asarray(observations), np.asarray(rewards), np.asarray(dones)
 
@@ -829,9 +829,6 @@ class Building(object):
             self.lifts[no].decision_action(action)
             no = no + 1
 
-   
-        
-     
     def render(self):
         self.scr.fill(WHITE)
         for floor in self.floors:

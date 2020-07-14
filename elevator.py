@@ -60,7 +60,8 @@ class ElevatorEnv:
             if event.type == pg.QUIT:
                 sys.exit()
 
-        self.clock.tick(GAME_SPEED)
+        if RENDER:
+            self.clock.tick(GAME_SPEED)
 
         if not self.heuristic: 
             self.bd.decision_actions(actions)
