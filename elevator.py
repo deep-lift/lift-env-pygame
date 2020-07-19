@@ -40,7 +40,7 @@ class ElevatorEnv:
     bd: building
     heuristic: bool = True
     fixed_scenario:bool = True   #고정된 시나리오 동작 여부 플래그
-
+    
     observations = np.zeros((N_AGENTS, N_OBSERVATION))
     states = np.zeros(N_STATE)
     rewards = np.asarray((N_AGENTS,))
@@ -54,11 +54,17 @@ class ElevatorEnv:
         self.bd = building.Building(self, self.screen)
         self.heuristic = heuristic
         self.total_reward = 0
+        self.display = True
 
     def step(self, actions: list):
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 sys.exit()
+            if event.type == pg.KEYDOWN:
+                keys = pg.key.get_pressed()
+                if keys[pg.K_F12]:
+                    self.display = not self.display
+                  
 
         self.clock.tick(GAME_SPEED)
 
@@ -77,13 +83,15 @@ class ElevatorEnv:
                     all_observation = o
 
         # todo : observations에서 observations(쉐어정보), states(개별정보)로 분리하여 저장
+
+
         if all_observation is not None:
             self.states = all_observation[0:31]
 
             for a in range(N_AGENTS):
                 self.observations[a] = all_observation[46*a+31:46*a+46]
 
-        if RENDER:
+        if self.display:
             self.render()
 
         return observations, rewards, dones, requested_agents

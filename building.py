@@ -30,7 +30,7 @@ class Lift(object):
         self.act_fsm.add_transition(State.Ready, Event.DoorOpenRequest, State.DoorOpening)
 
         self.act_fsm.add_transition(State.Accelate, Event.AccelateEnd, State.NormalMove)
-        #self.act_fsm.add_transition(State.Accelate, Event.DecelerateStart, State.NormalMove)
+        self.act_fsm.add_transition(State.Accelate, Event.DecelerateStart, State.Decelerate)
         self.act_fsm.add_transition(State.Accelate, Event.Arrived, State.MoveStop)
 
         self.act_fsm.add_transition(State.NormalMove, Event.DecelerateStart, State.Decelerate)
@@ -132,7 +132,7 @@ class Lift(object):
         
         floor, next_floor = self.get_nextfloor()
 
-        f = self._building.floors[action]
+        f = self._building.floors[next_floor]
         
         action_state = MoveState(action)
         if action_state == MoveState.STOP:
