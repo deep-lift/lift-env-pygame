@@ -60,6 +60,7 @@ class Lift(object):
         self.elevatorAction[State.Turn] = self.act_turn
 
         self.state = observation()
+        self.reward = 0
 
         self.verticals = []
 
@@ -334,7 +335,6 @@ class Lift(object):
         self.req_time = self._building.play_time
         self.req_decision = True
 
-
     def act_ready(self): #아무것도 안하고 대기..
         self.move = MoveState.STOP
         self.curr_speed = 0
@@ -586,10 +586,7 @@ class Building(object):
 
         self.total_passenger: int = 0
         self.rest_passenger: int = 0
-
         self.curr_passenger: int = 0
-     
-      
 
         self.start_time: float = 0
         self.success_count: int = 0
@@ -661,17 +658,26 @@ class Building(object):
         if self.step >= self._env.max_step and self.dest_passenger - self._env.passenger < 0:
             for lift in self.lifts:
                 # print('episode end.. penalty?')
+                # todo : 여기에는 리워드가 최종으로 들어가는 부분. 마지막에 +도달한 승객 - 모든 승객 --> 배달이 다 안되었을 경우는 마이너스를 무조건 받는다.
                 lift.reward += (self.dest_passenger - self._env.passenger) / N_AGENTS
 
         for lift in self.lifts:
             if lift.req_decision or self.is_done:
                 observations.append(lift.collect_obs())
                 rewards.append(lift.reward)
-                dones.append(self.is_done)
+                # dones.append(self.is_done)
             else:
                 observations.append([])
-                rewards.append(0)
-                dones.append(False)
+                # todo :
+                # rewards.append(0)
+                # dones.append(False)
+
+            # todo : 의심스러운 부분 수정 @재영님 여기 is_done부분을 아래로 뺐어요. 한번 체크부탁드려요
+            dones.append(self.is_done)
+            # if self.is_done:
+            #     dones.append(self.is_done)
+            # else:
+            #     dones.append(False)
 
         return np.asarray(observations), np.asarray(rewards), np.asarray(dones)
 
@@ -793,7 +799,7 @@ class Building(object):
 
         if self.step >= self._env.max_step or self.is_success():
             self.is_done = True
-            self.scenario_recorde = False
+            self.scenario_recorde = False  # todo : 이것의 용도는?
 
         if self._env.heuristic:
             return [],[],[]
@@ -811,7 +817,7 @@ class Building(object):
                 return False
 
         for lift in self.lifts:
-            lift.reward = lift.reward + 10
+            lift.reward = lift.reward * 5
 
         self.success_count+=1
 
@@ -823,9 +829,6 @@ class Building(object):
             self.lifts[no].decision_action(action)
             no = no + 1
 
-   
-        
-     
     def render(self):
         self.scr.fill(WHITE)
         for floor in self.floors:

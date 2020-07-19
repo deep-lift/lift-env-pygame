@@ -66,7 +66,8 @@ class ElevatorEnv:
                     self.display = not self.display
                   
 
-        self.clock.tick(GAME_SPEED)
+        if RENDER:
+            self.clock.tick(GAME_SPEED)
 
         if not self.heuristic: 
             self.bd.decision_actions(actions)
