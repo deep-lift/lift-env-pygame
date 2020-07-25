@@ -34,7 +34,7 @@ class ElevatorEnv:
     close: float = 1
     turn: float = 1
     capacity: int = 15
-    action_to_floor: int = 0
+    action_to_floor: int = 1
     fixedTime: float = FIXED_TIME
     max_step: int = N_MAX_STEPS
     bd: building

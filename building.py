@@ -61,6 +61,7 @@ class Lift(object):
 
         self.state = observation()
         self.reward = 0
+        
 
         self.verticals = []
 
@@ -84,6 +85,7 @@ class Lift(object):
         self.done = False
         self.state.reset()
         self.act_fsm.curr_state = State.Ready
+        self.recved_decision_floor =-1;  #네트웍에서 액션으로 받은 목적지 층
 
         for i in range(self._building._env.floors):
             if i >= len(self.verticals):
@@ -124,6 +126,33 @@ class Lift(object):
             lift.make_state(self.state)
         return self.state.obsvector
 
+    def decision_floor(self, decision_floor):
+
+        if not self.req_decision:
+            return
+
+        self.reward = 0
+        self.req_decision = False
+
+        curfloor, next_floor = self.get_nextfloor()
+       
+        if decision_floor == self.curr_floor:
+            if self.act_fsm.curr_state == State.Ready:
+                self.act_fsm.transition(Event.DoorOpenRequest)
+            else:
+                self.act_fsm.transition(Event.Arrived)
+            return
+
+        self.recved_decision_floor = decision_floor
+        if decision_floor > self.curr_floor:
+            self.set_direction(MoveState.UP)
+        else:
+            self.set_direction(MoveState.DOWN)
+
+        self.act_fsm.transition(Event.Call)
+    
+
+        
     def decision_action(self, action):
         if not self.req_decision:
             return
@@ -221,7 +250,7 @@ class Lift(object):
        #     self.act_fsm.transition(Event.DecelerateStart)
        #     return
                
-
+ 
 
         if self._building._env.heuristic:
 
@@ -252,8 +281,15 @@ class Lift(object):
 
             return
 
-      
-        #if self._building.floors[next_floor].is_call(dir):
+
+        if self.recved_decision_floor == self.curr_floor and self.curr_speed ==0:
+            self.recved_decision_floor = -1
+
+        
+        if next_floor == self.recved_decision_floor:
+            self.act_fsm.transition(Event.DecelerateStart)
+
+       
         self.request_action(next_floor)
 
 
@@ -327,9 +363,16 @@ class Lift(object):
         else:
              self.req_decision_floor = -1
 
-        self.request_decision(floor)
+        
+        if self._building._env.action_to_floor  == 0:
+            self.request_decision(floor)
+
 
     def request_decision(self, floor):
+
+        if self.recved_decision_floor >-1:
+            return
+
         self.req_state = self.act_fsm.get_current_state()
         self.req_decision_floor = floor
         self.req_time = self._building.play_time
@@ -339,8 +382,14 @@ class Lift(object):
         self.move = MoveState.STOP
         self.curr_speed = 0
         self.set_transition_delay(Event.End,0.5,False)
-        self.request_action(self.curr_floor)
-        #RequstAction((int)GetFloor())
+
+        if self._building._env.action_to_floor ==0:
+            self.request_action(self.curr_floor)
+        else:
+            self.request_decision(self.curr_floor)
+
+
+        
 
     def act_accelate(self):  # 정상속도로 되기 위해서 가속상태..
 
@@ -348,6 +397,9 @@ class Lift(object):
         #    self.move = MoveState.UP
         #elif self.curr_floor == self._building._env.floors -1 and self.move != MoveState.DOWN:
         #    self.move = MoveState.DOWN
+
+        if self._building._env.action_to_floor>0:
+            self.request_decision(self.curr_floor)
 
         self.curr_speed += self._building._env.fixedTime*1
         if self.curr_speed < self._building._env.speed:
@@ -389,6 +441,8 @@ class Lift(object):
         floor = int(self.curr_floor)
         f = self._building.floors[floor]
         self.curr_speed = 0
+
+      
 
         if self.verticals[floor].on or f.is_call(self.move):
             self.act_fsm.transition(Event.DoorOpenRequest)
@@ -459,6 +513,8 @@ class Lift(object):
             self.set_transition_delay(Event.DoorCloseEnd, 1)  # 승객이 있을 경우는 다시 이동을 하도록 셋팅
         else:
             self.set_transition_delay(Event.EmptyPassenger, 1)  # 승객이 없을 경우는 일단 해당층에 서 대기
+
+
 
     def act_turn(self):
         raise NotImplementedError
@@ -567,7 +623,6 @@ class Lift(object):
 
 
 class PassengerSpawn(object):
-
     def __init__(self,step,floor):
         self.step = step
         self.floor = floor
@@ -826,7 +881,11 @@ class Building(object):
     def decision_actions(self, actions):
         no = 0
         for action in actions:
-            self.lifts[no].decision_action(action)
+            if self._env.action_to_floor <0:
+                self.lifts[no].decision_action(action)
+            else:
+                self.lifts[no].decision_floor(action)
+
             no = no + 1
 
     def render(self):
