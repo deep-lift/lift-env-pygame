@@ -105,16 +105,13 @@ class Lift(object):
             state.add(int(f.is_call(MoveState.DOWN)))    # 각층 DOWN 버튼 눌린 여부
             state.add(int(f.is_call(MoveState.UP)))      # 각층 UP 버튼 눌린 여부
 
-        floor, next_floor = self.get_nextfloor()    # 엘베의 이동방향을 감안해서 현재층과 다음층
+        
         ######################################################################################
 
         ######################################################################################
         # Local Observation
         state.add(self.curr_floor)                  # 해당 리프트 현재 층수(int->float) 
-        state.add(next_floor)                       # 해당 리프트 다음 층수
-
-        state.add(Lift.move_dir[self.move.value] * self.curr_speed)  #엘베속도...
-
+        state.add(Lift.move_dir[self.move.value] * self.curr_speed)  #엘베속도..
         state.add(int(self.act_fsm.curr_state.value))          # 해당 리프트의 FSM 상태
         state.add(len(self.passengers))             # 해당 리프트의 탑승 승객 수
 
