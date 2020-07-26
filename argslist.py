@@ -15,7 +15,7 @@ IS_EVENT_DRIVEN = True
 
 # ===================== AGENT =====================
 N_AGENTS = 1
-N_OBSERVATION = 15
+N_OBSERVATION = 14
 N_STATE = 31
 N_ACTION = 10
 N_MAX_STEPS = 1000
