@@ -20,7 +20,7 @@ def select_actions(observations, requested_agents):
 
 def main():
     env = elevator.ElevatorEnv(SCREEN_WIDTH, SCREEN_HEIGHT, False)
-    observations, _, _ = env.reset()
+    observations, _, _,_ = env.reset()
     done = False
     step = 0
     observation = None

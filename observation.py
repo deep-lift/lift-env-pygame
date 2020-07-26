@@ -10,7 +10,7 @@ class observation(object):
     def reset(self):
         self.obsvector.clear()
 
-    def add(self,value):
+    def add(self,value:float):
         self.obsvector.append(float(value));
 
     def add(self, vec:Vector3):
@@ -18,9 +18,6 @@ class observation(object):
         self.obsvector.append(float(vec.y))
         self.obsvector.append(float(vec.z))
 
-    def add(self,b:bool):
-        if b:
-            self.obsvector.append(1)
-        else:
-            self.obsvector.append(0)
+    def add(self,value):
+        self.obsvector.append(value)
 

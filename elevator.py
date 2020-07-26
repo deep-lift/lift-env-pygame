@@ -72,20 +72,12 @@ class ElevatorEnv:
         if not self.heuristic: 
             self.bd.decision_actions(actions)
 
-        observations, rewards, dones = self.bd.update_step()
+        observations, rewards, dones,requested_agents = self.bd.update_step()
 
         requested_agents = [False] * N_AGENTS
         all_observation = None
 
-        for i, o in enumerate(observations):
-            if len(o) != 0:
-                requested_agents[i] = True
-                if all_observation is None:
-                    all_observation = o
-
-        # todo : observations에서 observations(쉐어정보), states(개별정보)로 분리하여 저장
-
-
+   
         if all_observation is not None:
             self.states = all_observation[0:31]
 

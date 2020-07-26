@@ -110,9 +110,11 @@ class Lift(object):
 
         ######################################################################################
         # Local Observation
-        state.add(floor)                            # 해당 리프트 현재 층수
+        state.add(self.curr_floor)                  # 해당 리프트 현재 층수(int->float) 
         state.add(next_floor)                       # 해당 리프트 다음 층수
-        state.add(self.move.value)                  # 해당 리프트의 이동 방향
+
+        state.add(Lift.move_dir[self.move.value] * self.curr_speed)  #엘베속도...
+
         state.add(self.act_fsm.curr_state)          # 해당 리프트의 FSM 상태
         state.add(len(self.passengers))             # 해당 리프트의 탑승 승객 수
 
@@ -307,7 +309,7 @@ class Lift(object):
         elif self.pos.y <= self._building.floors[0].pos.y:
             self.pos.y = self._building.floors[0].pos.y
             self.set_direction(MoveState.UP);
-
+            
         self.curr_floor = ((self.pos.y / self._building._env.height) - 1)+0.01
         self.chk_floor()
 
@@ -442,8 +444,6 @@ class Lift(object):
         f = self._building.floors[floor]
         self.curr_speed = 0
 
-      
-
         if self.verticals[floor].on or f.is_call(self.move):
             self.act_fsm.transition(Event.DoorOpenRequest)
 
@@ -562,6 +562,9 @@ class Lift(object):
             self.passengers.append(p)
             self.set_transition_delay(Event.DoorCloseStart, random.uniform(0.6, 1.0),True)
             self.verticals[p.dest_floor].set(True)
+
+            #승객 태울때 리워드 필요..
+
             #SetFloorButton(p.destFloor, True)
             #AddReward(1f / (Time.fixedTime - p.timeWaiting))
             #p.timeWaiting = Time.fixedTime
@@ -709,6 +712,7 @@ class Building(object):
         observations = []
         rewards = []
         dones = []
+        requested_agents = []
 
         if self.step >= self._env.max_step and self.dest_passenger - self._env.passenger < 0:
             for lift in self.lifts:
@@ -717,24 +721,14 @@ class Building(object):
                 lift.reward += (self.dest_passenger - self._env.passenger) / N_AGENTS
 
         for lift in self.lifts:
-            if lift.req_decision or self.is_done:
-                observations.append(lift.collect_obs())
-                rewards.append(lift.reward)
-                # dones.append(self.is_done)
-            else:
-                observations.append([])
-                # todo :
-                # rewards.append(0)
-                # dones.append(False)
-
-            # todo : 의심스러운 부분 수정 @재영님 여기 is_done부분을 아래로 뺐어요. 한번 체크부탁드려요
+            #if lift.req_decision or self.is_done:
+            observations.append(lift.collect_obs())
+            rewards.append(lift.reward)
+            requested_agents = lift.req_decision
             dones.append(self.is_done)
-            # if self.is_done:
-            #     dones.append(self.is_done)
-            # else:
-            #     dones.append(False)
 
-        return np.asarray(observations), np.asarray(rewards), np.asarray(dones)
+       
+        return np.asarray(observations), np.asarray(rewards), np.asarray(dones),np.asarray(requested_agents)
 
     def simulation_passenger(self):
 
@@ -857,7 +851,7 @@ class Building(object):
             self.scenario_recorde = False  # todo : 이것의 용도는?
 
         if self._env.heuristic:
-            return [],[],[]
+            return [],[],[],[]
 
         return self.env_info()
 
