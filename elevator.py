@@ -72,17 +72,15 @@ class ElevatorEnv:
         if not self.heuristic: 
             self.bd.decision_actions(actions)
 
-        observations, rewards, dones,requested_agents = self.bd.update_step()
+        observations, rewards, dones, requested_agents = self.bd.update_step()
 
-        requested_agents = [False] * N_AGENTS
-        all_observation = None
+        # requested_agents = [False] * N_AGENTS
 
-   
-        if all_observation is not None:
-            self.states = all_observation[0:31]
+        # 재영님 여기서 첫번째꺼 31개 짜르면 나머지 엘베도 다 공통이죠?
+        self.states = observations[0][0:31]
 
-            for a in range(N_AGENTS):
-                self.observations[a] = all_observation[46*a+31:46*a+46]
+        for a in range(N_AGENTS):
+            self.observations[a] = observations[45*a+31:45*a+45]
 
         if self.display:
             self.render()
