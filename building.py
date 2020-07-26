@@ -721,8 +721,9 @@ class Building(object):
             #if lift.req_decision or self.is_done:
             observations.append(lift.collect_obs())
             rewards.append(lift.reward)
-            requested_agents = lift.req_decision
+            requested_agents.append(lift.req_decision)
             dones.append(self.is_done)
+            lift.reward = 0
 
        
         return np.asarray(observations), np.asarray(rewards), np.asarray(dones),np.asarray(requested_agents)
