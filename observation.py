@@ -21,3 +21,5 @@ class observation(object):
     def add(self,value):
         self.obsvector.append(value)
 
+   
+

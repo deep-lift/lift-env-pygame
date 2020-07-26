@@ -102,8 +102,8 @@ class Lift(object):
 
         for f in self._building.floors:
             state.add(len(f.passengers))            # 각층 대기 승객 수
-            state.add(f.is_call(MoveState.DOWN))    # 각층 DOWN 버튼 눌린 여부
-            state.add(f.is_call(MoveState.UP))      # 각층 UP 버튼 눌린 여부
+            state.add(int(f.is_call(MoveState.DOWN)))    # 각층 DOWN 버튼 눌린 여부
+            state.add(int(f.is_call(MoveState.UP)))      # 각층 UP 버튼 눌린 여부
 
         floor, next_floor = self.get_nextfloor()    # 엘베의 이동방향을 감안해서 현재층과 다음층
         ######################################################################################
@@ -115,11 +115,11 @@ class Lift(object):
 
         state.add(Lift.move_dir[self.move.value] * self.curr_speed)  #엘베속도...
 
-        state.add(self.act_fsm.curr_state)          # 해당 리프트의 FSM 상태
+        state.add(int(self.act_fsm.curr_state.value))          # 해당 리프트의 FSM 상태
         state.add(len(self.passengers))             # 해당 리프트의 탑승 승객 수
 
         for v in self.verticals:
-            state.add(v.on)                         # 엘레베이터 버튼 on 여부
+            state.add(int(v.on))                         # 엘레베이터 버튼 on 여부
         ######################################################################################
 
     def collect_obs(self):
