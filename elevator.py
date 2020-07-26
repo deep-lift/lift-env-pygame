@@ -64,7 +64,6 @@ class ElevatorEnv:
                 keys = pg.key.get_pressed()
                 if keys[pg.K_F12]:
                     self.display = not self.display
-                  
 
         if RENDER:
             self.clock.tick(GAME_SPEED)
@@ -72,20 +71,18 @@ class ElevatorEnv:
         if not self.heuristic: 
             self.bd.decision_actions(actions)
 
-        observations, rewards, dones, requested_agents = self.bd.update_step()
-
-        # requested_agents = [False] * N_AGENTS
+        raw_observations, rewards, dones, requested_agents = self.bd.update_step()
 
         # 재영님 여기서 첫번째꺼 31개 짜르면 나머지 엘베도 다 공통이죠?
-        self.states = observations[0][0:31]
+        self.states = raw_observations[0][0:31]
 
         for a in range(N_AGENTS):
-            self.observations[a] = observations[45*a+31:45*a+45]
+            self.observations[a] = raw_observations[a][45*a+31:45*a+45]
 
         if self.display:
             self.render()
 
-        return observations, rewards, dones, requested_agents
+        return self.observations, rewards, dones, requested_agents
 
     def render(self):
         self.bd.render()
