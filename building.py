@@ -873,7 +873,7 @@ class Building(object):
     def decision_actions(self, actions):
         no = 0
         for action in actions:
-            if self._env.action_to_floor <0:
+            if self._env.action_to_floor ==0:
                 self.lifts[no].decision_action(action)
             else:
                 self.lifts[no].decision_floor(action)
